@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getTopics } from '../services/contentService';
+import { getTopics } from '../services/dataService';
 import { getCurrentUser } from '../services/authService';
 
 export default function HomeScreen({ navigation }) {
