@@ -3,38 +3,54 @@
 ## Proje Özeti
 **Mnemo** — Duolingo tarzı tarih öğrenme mobil uygulaması.
 - Platform: React Native + Expo
-- Veritabanı: SQLite (expo-sqlite)
-- GitHub: https://github.com/bymmetin/MobilUygulama
+- Veritabanı: SQLite (cache) + Supabase (ana veri kaynağı)
+- GitHub Mobil: https://github.com/bymmetin/MobilUygulama
+- GitHub Backend: https://github.com/bymmetin/Back-end
 - Yerel klasör: `C:\Users\bymme\Documents\mnemo`
+- OS: Windows, PowerShell
+
+## Supabase Bilgileri
+```
+SUPABASE_URL=https://gyucxqpvrczuqqqhtrkm.supabase.co
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_oj-CdLV4DVpn2ZMb_ot7Jg_RmpcYzMZ
+```
 
 ## İş Bölümü
 - **Ben (kod):** Mantık, veritabanı, fonksiyonlar, navigation
 - **Arkadaşım (tasarım):** Renkler, stiller, görseller, animasyon detayları
 
+## GitHub Kuralları
+- main'e direkt push yapılamaz, PR zorunlu
+- Her özellik için yeni branch: `git checkout -b ozellik-adi`
+- Bitince push et, GitHub'da PR aç, merge et
+- Her commit anlamlı mesaj içermeli (hoca activity'e bakıyor)
+
 ---
 
-## Klasör Yapısı
+## Klasör Yapısı (Güncel)
 ```
 mnemo/
 ├── src/
 │   ├── screens/
-│   │   ├── LoginScreen.js       ✅ tamamlandı
-│   │   ├── RegisterScreen.js    ✅ tamamlandı
-│   │   ├── HomeScreen.js        ✅ tamamlandı (iskelet)
-│   │   ├── TopicDetailScreen.js ❌ yapılmadı
-│   │   ├── LessonScreen.js      ❌ yapılmadı
-│   │   └── QuizScreen.js        ❌ yapılmadı
-│   ├── components/              ❌ henüz boş
+│   │   ├── LoginScreen.js          ✅ tamamlandı
+│   │   ├── RegisterScreen.js       ✅ tamamlandı
+│   │   ├── HomeScreen.js           ✅ iskelet — güncellenecek
+│   │   ├── TopicDetailScreen.js    ❌ yapılmadı
+│   │   ├── LessonScreen.js         ❌ yapılmadı
+│   │   └── QuizScreen.js           ❌ yapılmadı
+│   ├── components/                 ❌ henüz boş
+│   ├── config/
+│   │   └── supabase.js             ❌ yapılmadı
 │   ├── navigation/
-│   │   ├── AppNavigator.js      ✅ tamamlandı
-│   │   ├── AuthStack.js         ✅ tamamlandı
-│   │   └── MainStack.js         ✅ tamamlandı
+│   │   ├── AppNavigator.js         ✅ tamamlandı — dokunma
+│   │   ├── AuthStack.js            ✅ tamamlandı — dokunma
+│   │   └── MainStack.js            ✅ tamamlandı — güncellenecek
 │   ├── db/
-│   │   ├── database.js          ✅ tamamlandı
-│   │   └── seedData.js          ✅ tamamlandı (App.js içine taşındı)
+│   │   └── database.js             ✅ tamamlandı — dokunma
 │   └── services/
-│       └── authService.js       ✅ tamamlandı
-├── App.js                       ✅ tamamlandı
+│       ├── authService.js          ✅ tamamlandı — dokunma
+│       └── dataService.js          ❌ yapılmadı
+├── App.js                          ✅ tamamlandı
 └── package.json
 ```
 
@@ -44,39 +60,28 @@ mnemo/
 
 ### ✅ Kurulum
 - node.js, Expo CLI kurulu
-- GitHub repo bağlandı (`git remote add origin https://github.com/bymmetin/MobilUygulama.git`)
+- GitHub repo bağlandı
 - Klasör yapısı oluşturuldu
-- .gitignore ayarlandı
+- Branch koruma aktif (main'e direkt push kapalı)
 
-### ✅ Veritabanı (`src/db/database.js`)
-Tablolar:
-- `users` — id, username, email, password (SHA256 hash), xp, streak, last_login
-- `topics` — id, title, description, order_num
-- `lessons` — id, topic_id, title, order_num
-- `questions` — id, lesson_id, question_text, option_a/b/c/d, correct_answer
-- `user_progress` — id, user_id, lesson_id, completed, score
+### ✅ Supabase (bulut veritabanı)
+- Proje adı: mnemo, Region: Europe
+- Tablolar oluşturuldu: topics, lessons, questions
+- topics tablosunda 3 örnek kayıt var
+- GitHub Back-end reposuna bağlandı
+- RLS aktif
 
-Seed data (App.js içinde başlangıçta çalışır):
-- 3 topic eklendi (Osmanlı Kurulus, Kurtulus Savasi, Cumhuriyet)
-- Lessons ve questions tabloları dolduruldu
+### ✅ Veritabanı — `src/db/database.js`
+Tablolar: users, topics, lessons, questions, user_progress
 
-### ✅ Auth (`src/services/authService.js`)
-- `register(username, email, password)` — SHA256 hash, AsyncStorage'a kaydeder
-- `login(email, password)` — hash karşılaştırır, AsyncStorage'a kaydeder
-- `logout()` — AsyncStorage temizler
-- `getCurrentUser()` — AsyncStorage'dan okur
-- `setUserSetter(fn)` — AppNavigator'a state setter bağlar (ekran geçişi için)
+### ✅ Auth — `src/services/authService.js`
+- register, login, logout, getCurrentUser, setUserSetter fonksiyonları
 
-### ✅ Navigation (`src/navigation/`)
-- `AppNavigator.js` — AsyncStorage'a bakarak Auth veya Main Stack gösterir
-- `AuthStack.js` — Login → Register
-- `MainStack.js` — Home (şimdilik sadece bu)
-- Giriş yapınca Ana Sayfa'ya, çıkınca Login'e geçiyor ✅
-- Uygulama kapanıp açılınca oturum korunuyor ✅
+### ✅ Navigation
+- AppNavigator, AuthStack, MainStack çalışıyor
+- Giriş/çıkış/oturum koruması çalışıyor
 
----
-
-## Kurulu Paketler
+### ✅ Kurulu Paketler
 ```
 expo-sqlite
 expo-crypto
@@ -122,10 +127,8 @@ export const getDB = async () => {
 
 export const initDB = async () => {
   const db = await getDB();
-
   await db.execAsync(`
     PRAGMA journal_mode = WAL;
-
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NOT NULL,
@@ -135,14 +138,12 @@ export const initDB = async () => {
       streak INTEGER DEFAULT 0,
       last_login TEXT
     );
-
     CREATE TABLE IF NOT EXISTS topics (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       description TEXT,
       order_num INTEGER
     );
-
     CREATE TABLE IF NOT EXISTS lessons (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       topic_id INTEGER NOT NULL,
@@ -150,7 +151,6 @@ export const initDB = async () => {
       order_num INTEGER,
       FOREIGN KEY (topic_id) REFERENCES topics(id)
     );
-
     CREATE TABLE IF NOT EXISTS questions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       lesson_id INTEGER NOT NULL,
@@ -162,7 +162,6 @@ export const initDB = async () => {
       correct_answer TEXT NOT NULL,
       FOREIGN KEY (lesson_id) REFERENCES lessons(id)
     );
-
     CREATE TABLE IF NOT EXISTS user_progress (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -173,7 +172,6 @@ export const initDB = async () => {
       FOREIGN KEY (lesson_id) REFERENCES lessons(id)
     );
   `);
-
   console.log('Veritabanı hazır');
 };
 ```
@@ -186,35 +184,22 @@ import { getDB } from '../db/database';
 
 let setGlobalUser = null;
 
-export const setUserSetter = (fn) => {
-  setGlobalUser = fn;
-};
+export const setUserSetter = (fn) => { setGlobalUser = fn; };
 
 const hashPassword = async (password) => {
-  const hash = await Crypto.digestStringAsync(
-    Crypto.CryptoDigestAlgorithm.SHA256,
-    password
+  return await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256, password
   );
-  return hash;
 };
 
 export const register = async (username, email, password) => {
   try {
     const db = await getDB();
-    const existing = await db.getFirstAsync(
-      'SELECT * FROM users WHERE email = ?', [email]
-    );
-    if (existing) {
-      return { success: false, message: 'Bu email zaten kayıtlı' };
-    }
+    const existing = await db.getFirstAsync('SELECT * FROM users WHERE email = ?', [email]);
+    if (existing) return { success: false, message: 'Bu email zaten kayıtlı' };
     const hashedPassword = await hashPassword(password);
-    await db.runAsync(
-      'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
-      [username, email, hashedPassword]
-    );
-    const newUser = await db.getFirstAsync(
-      'SELECT * FROM users WHERE email = ?', [email]
-    );
+    await db.runAsync('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', [username, email, hashedPassword]);
+    const newUser = await db.getFirstAsync('SELECT * FROM users WHERE email = ?', [email]);
     await AsyncStorage.setItem('user', JSON.stringify(newUser));
     if (setGlobalUser) setGlobalUser(newUser);
     return { success: true, user: newUser };
@@ -227,13 +212,8 @@ export const login = async (email, password) => {
   try {
     const db = await getDB();
     const hashedPassword = await hashPassword(password);
-    const user = await db.getFirstAsync(
-      'SELECT * FROM users WHERE email = ? AND password = ?',
-      [email, hashedPassword]
-    );
-    if (!user) {
-      return { success: false, message: 'Email veya şifre hatalı' };
-    }
+    const user = await db.getFirstAsync('SELECT * FROM users WHERE email = ? AND password = ?', [email, hashedPassword]);
+    if (!user) return { success: false, message: 'Email veya şifre hatalı' };
     await AsyncStorage.setItem('user', JSON.stringify(user));
     if (setGlobalUser) setGlobalUser(user);
     return { success: true, user };
@@ -326,6 +306,32 @@ export default function MainStack() {
 }
 ```
 
+### `src/screens/HomeScreen.js`
+```javascript
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { logout } from '../services/authService';
+
+export default function HomeScreen() {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Mnemo</Text>
+      <Text style={styles.subtitle}>Ana Sayfa</Text>
+      <TouchableOpacity style={styles.button} onPress={logout}>
+        <Text style={styles.buttonText}>Çıkış Yap</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  title: { fontSize: 32, fontWeight: 'bold', marginBottom: 8 },
+  subtitle: { fontSize: 18, color: '#666', marginBottom: 32 },
+  button: { backgroundColor: '#EF4444', padding: 16, borderRadius: 8 },
+  buttonText: { color: '#fff', fontWeight: 'bold' },
+});
+```
+
 ### `src/screens/LoginScreen.js`
 ```javascript
 import { useState } from 'react';
@@ -337,34 +343,16 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState('');
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Hata', 'Tüm alanları doldur');
-      return;
-    }
+    if (!email || !password) { Alert.alert('Hata', 'Tüm alanları doldur'); return; }
     const sonuc = await login(email, password);
-    if (!sonuc.success) {
-      Alert.alert('Hata', sonuc.message);
-    }
+    if (!sonuc.success) Alert.alert('Hata', sonuc.message);
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Giriş Yap</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Şifre"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+      <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+      <TextInput style={styles.input} placeholder="Şifre" value={password} onChangeText={setPassword} secureTextEntry />
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Giriş Yap</Text>
       </TouchableOpacity>
@@ -397,41 +385,17 @@ export default function RegisterScreen({ navigation }) {
   const [password, setPassword] = useState('');
 
   const handleRegister = async () => {
-    if (!username || !email || !password) {
-      Alert.alert('Hata', 'Tüm alanları doldur');
-      return;
-    }
+    if (!username || !email || !password) { Alert.alert('Hata', 'Tüm alanları doldur'); return; }
     const sonuc = await register(username, email, password);
-    if (!sonuc.success) {
-      Alert.alert('Hata', sonuc.message);
-    }
+    if (!sonuc.success) Alert.alert('Hata', sonuc.message);
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Kayıt Ol</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Kullanıcı adı"
-        value={username}
-        onChangeText={setUsername}
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Şifre"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+      <TextInput style={styles.input} placeholder="Kullanıcı adı" value={username} onChangeText={setUsername} autoCapitalize="none" />
+      <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+      <TextInput style={styles.input} placeholder="Şifre" value={password} onChangeText={setPassword} secureTextEntry />
       <TouchableOpacity style={styles.button} onPress={handleRegister}>
         <Text style={styles.buttonText}>Kayıt Ol</Text>
       </TouchableOpacity>
@@ -452,144 +416,111 @@ const styles = StyleSheet.create({
 });
 ```
 
-### `src/screens/HomeScreen.js`
-```javascript
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { logout } from '../services/authService';
-
-export default function HomeScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Mnemo</Text>
-      <Text style={styles.subtitle}>Ana Sayfa</Text>
-      <TouchableOpacity style={styles.button} onPress={logout}>
-        <Text style={styles.buttonText}>Çıkış Yap</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  title: { fontSize: 32, fontWeight: 'bold', marginBottom: 8 },
-  subtitle: { fontSize: 18, color: '#666', marginBottom: 32 },
-  button: { backgroundColor: '#EF4444', padding: 16, borderRadius: 8 },
-  buttonText: { color: '#fff', fontWeight: 'bold' },
-});
-```
-
 ---
 
-## Sıradaki Adımlar (Yapılmadı)
+## Sıradaki Görev: Supabase + UI Entegrasyonu
 
-### UI Ekranları
-1. **HomeScreen** — DB'den topics çek, FlatList ile listele, kullanıcı adı ve XP göster
-2. **TopicDetailScreen** — Seçilen konunun lessons listesi
-3. **LessonScreen / QuizScreen** — Sorular, A/B/C/D seçenekleri, doğru/yanlış mantığı, XP güncelleme
+### Claude Code Promptu
 
-### MainStack'e eklenecek ekranlar
-```javascript
-<Stack.Screen name="TopicDetail" component={TopicDetailScreen} />
-<Stack.Screen name="Quiz" component={QuizScreen} />
 ```
+CLAUDE.md dosyasını oku. Aşağıdaki görevleri sırayla yap.
+Her adım bittikten sonra dur ve "devam edeyim mi?" diye sor.
 
-### VFX (Animasyonlar)
-- `react-native-reanimated` kurulumu
-- Doğru cevap: yeşil parlama + tik
-- Yanlış cevap: kırmızı shake
-- XP kazanma: +XP yazısı yukarı uçar
-- Konfeti: ders tamamlandığında
+--- ADIM 1: Supabase kurulumu ---
 
-### Test
-- XP birikiyor mu?
-- İlerleme kaydediliyor mu?
-- Streak sistemi çalışıyor mu?
+Terminalde çalıştır:
+  npx expo install @supabase/supabase-js
+  npx expo install expo-secure-store
 
-### Sunum
-- Branch'leri merge et
-- Expo QR kodu üret
-- README güncelle
+Sonra src/config/supabase.js dosyasını oluştur:
+
+import { createClient } from '@supabase/supabase-js';
+import * as SecureStore from 'expo-secure-store';
+
+const supabaseUrl = 'https://gyucxqpvrczuqqqhtrkm.supabase.co';
+const supabaseKey = 'sb_publishable_oj-CdLV4DVpn2ZMb_ot7Jg_RmpcYzMZ';
+
+const ExpoSecureStoreAdapter = {
+  getItem: (key) => SecureStore.getItemAsync(key),
+  setItem: (key, value) => SecureStore.setItemAsync(key, value),
+  removeItem: (key) => SecureStore.deleteItemAsync(key),
+};
+
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    storage: ExpoSecureStoreAdapter,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  },
+});
+
+--- ADIM 2: dataService.js ---
+
+src/services/dataService.js oluştur.
+Önce Supabase'den veri çek, hata alırsa SQLite cache'den dön.
+Supabase'den gelen veriyi SQLite'a cache'le.
+
+Fonksiyonlar:
+- getTopics()
+- getLessons(topicId)
+- getQuestions(lessonId)
+- updateUserXP(userId, xpToAdd)
+
+--- ADIM 3: HomeScreen güncelle ---
+
+src/screens/HomeScreen.js güncelle:
+- getTopics() ile konuları çek
+- FlatList ile listele
+- AsyncStorage'dan kullanıcının username ve xp bilgisini göster
+- Konuya tıklanınca navigation.navigate('TopicDetail', { topicId, title }) ile geç
+
+--- ADIM 4: TopicDetailScreen oluştur ---
+
+src/screens/TopicDetailScreen.js oluştur:
+- route.params.topicId ile dersleri çek
+- getLessons(topicId) kullan
+- FlatList ile listele
+- Derse tıklanınca navigation.navigate('Quiz', { lessonId, title }) ile geç
+
+--- ADIM 5: QuizScreen oluştur ---
+
+src/screens/QuizScreen.js oluştur:
+- route.params.lessonId ile soruları çek
+- getQuestions(lessonId) kullan
+- Soruları sırayla göster (currentIndex state ile)
+- A/B/C/D seçenekleri buton olarak göster
+- Doğru cevaba basınca yeşil, yanlışa kırmızı
+- Her doğru cevap +10 XP
+- Tüm sorular bitince sonuç ekranı göster
+- Sonuçta: kaç doğru, kazanılan XP, Ana Sayfaya dön butonu
+- updateUserXP ile kullanıcının XP'sini güncelle
+
+--- ADIM 6: MainStack güncelle ---
+
+src/navigation/MainStack.js güncelle:
+- TopicDetailScreen ekle
+- QuizScreen ekle
+
+--- ADIM 7: Git ---
+
+git checkout -b supabase-ui-entegrasyonu
+git add .
+git commit -m "supabase entegrasyonu ve quiz sistemi tamamlandi"
+git push origin supabase-ui-entegrasyonu
+
+Önemli notlar:
+- Windows + PowerShell — dosya oluştururken New-Item kullan
+- Türkçe karakter sorunlarına dikkat et
+- authService.js, AppNavigator.js, database.js dosyalarına dokunma
+- Her adımda ne yaptığını kısaca açıkla
+```
 
 ---
 
 ## Önemli Notlar
-- Windows kullanıyorsun — terminalde `echo.` değil `New-Item` kullan
-- PowerShell kullanıyorsun
-- Expo Go telefonda test için kullanılıyor
-- Türkçe karakter sorun çıkarabilir — DB insert'lerde dikkatli ol
-- `DROP TABLE` satırları database.js'den kaldırıldı (sadece ilk sıfırlama için kullanıldı)
-
----
-
-## Sonraki Görev: Supabase Entegrasyonu
-
-### Karar
-Veriler (topics, lessons, questions, görseller, sesler) Supabase'den çekilecek.
-SQLite cache olarak kalacak — internet yoksa offline çalışsın diye.
-Auth (kullanıcı kayıt/giriş) SQLite'ta kalmaya devam edecek.
-
-### Claude Code'a Verilecek Prompt
-
-```
-CLAUDE.md dosyasını oku ve aşağıdaki görevi yap:
-
-Mevcut SQLite yapısını koruyarak Supabase entegrasyonu ekle.
-Uygulama önce Supabase'den veri çeksin, internet yoksa SQLite cache'den çalışsın.
-
-Yapılacaklar:
-
-1. Supabase kurulumu:
-   npx expo install @supabase/supabase-js
-   npx expo install expo-secure-store
-
-2. src/config/supabase.js oluştur — bağlantı dosyası
-   (SUPABASE_URL ve SUPABASE_ANON_KEY için yer bırak, ben dolduracağım)
-
-3. Supabase'de şu tabloları oluşturmak için SQL çıktısı ver:
-   - topics (id, title, description, order_num)
-   - lessons (id, topic_id, title, order_num)
-   - questions (id, lesson_id, question_text, option_a, option_b,
-     option_c, option_d, correct_answer, image_url, audio_url)
-
-4. src/services/dataService.js oluştur:
-   - getTopics() — önce Supabase'den çek, başarısız olursa SQLite'tan dön
-   - getLessons(topicId) — aynı mantık
-   - getQuestions(lessonId) — aynı mantık
-   - Supabase'den gelen veri SQLite'a cache'lensin
-
-5. src/screens/HomeScreen.js güncelle:
-   - topics listesini dataService üzerinden çek
-   - FlatList ile listele
-   - kullanıcı adı ve XP göster
-
-6. src/screens/TopicDetailScreen.js oluştur:
-   - seçilen konunun lessons listesi
-
-7. src/navigation/MainStack.js güncelle:
-   - TopicDetail ekranını ekle
-
-Önemli notlar:
-- Windows + PowerShell kullanıyorum, dosya oluştururken New-Item kullan
-- Türkçe karakter sorunlarına dikkat et
-- Mevcut auth sistemi (authService.js) ve AppNavigator bozulmasın
-- Her adımda ne yaptığını açıkla
-```
-
-### Supabase Kurulum Adımları (Manuel)
-Claude Code prompt'u çalıştırmadan önce şunları yap:
-
-1. supabase.com'a git, ücretsiz hesap aç
-2. "New Project" oluştur, isim: `mnemo`
-3. Project Settings → API sekmesine git
-4. `Project URL` ve `anon public` key'i kopyala
-5. `src/config/supabase.js` içindeki ilgili alanlara yapıştır
-
-### Eklenecek Klasör/Dosyalar
-```
-src/
-├── config/
-│   └── supabase.js          ❌ yapılacak
-└── services/
-    ├── authService.js        ✅ mevcut — dokunma
-    └── dataService.js        ❌ yapılacak
-```
+- Windows + PowerShell — `New-Item` kullan, `echo.` çalışmaz
+- Türkçe karakter DB insert'lerde sorun çıkarır
+- Branch koruma aktif — main'e direkt push yapılamaz
+- Her özellik: branch aç → commit → push → PR → merge
+- Hoca GitHub activity'e bakıyor, düzenli commit şart
