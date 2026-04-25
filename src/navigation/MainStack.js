@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text } from 'react-native';
+import HomeIconSvg from '../../assets/homeicon.svg';
 import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import TopicDetailScreen from '../screens/TopicDetailScreen';
@@ -23,7 +24,7 @@ function HomeTabs() {
       <Tab.Screen
         name="HomeTab"
         component={HomeScreen}
-        options={{ tabBarLabel: 'Konular', tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>📚</Text> }}
+        options={{ tabBarLabel: 'Konular', tabBarIcon: ({ color, size }) => <HomeIconSvg width={size} height={size} fill={color} /> }}
       />
       <Tab.Screen
         name="ProfileTab"
