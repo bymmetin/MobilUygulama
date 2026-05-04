@@ -74,6 +74,14 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.loginBtnText}>GİRİŞ YAP</Text>
         </TouchableOpacity>
 
+        {/* Kayıt ol linki */}
+        <View style={styles.registerRow}>
+          <Text style={styles.registerLabel}>Hesabın yok mu? </Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+            <Text style={styles.registerLink}>Kayıt ol</Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.spacer} />
 
         {/* Google & Apple */}
@@ -183,6 +191,15 @@ const styles = StyleSheet.create({
     color: colors.white,
     letterSpacing: 2,
   },
+  registerRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  registerLabel: { fontFamily: fonts.regular, fontSize: 14, color: colors.textMuted },
+  registerLink: { fontFamily: fonts.bold, fontSize: 14, color: colors.success },
+
   spacer: { flex: 1 },
   socialRow: {
     flexDirection: 'row',
