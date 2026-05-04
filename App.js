@@ -4,7 +4,6 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts, Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
 import { Poppins_700Bold, Poppins_800ExtraBold } from '@expo-google-fonts/poppins';
 import { initDB } from './src/db/database';
-import { seedData } from './src/db/seedData';
 import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
@@ -18,7 +17,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    initDB().then(() => seedData());
+    initDB();
   }, []);
 
   if (!fontsLoaded) {

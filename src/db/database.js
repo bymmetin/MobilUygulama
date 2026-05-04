@@ -69,5 +69,13 @@ export const initDB = async () => {
   try { await db.execAsync('ALTER TABLE questions ADD COLUMN image_url TEXT'); } catch (_) {}
   try { await db.execAsync('ALTER TABLE questions ADD COLUMN audio_url TEXT'); } catch (_) {}
 
+    // Cache tablolarını temizle — Supabase'den her zaman taze veri gelsin
+  await db.execAsync(`
+    DELETE FROM user_progress;
+    DELETE FROM questions;
+    DELETE FROM lessons;
+    DELETE FROM topics;
+  `);
+
   console.log('Veritabanı hazır');
 };

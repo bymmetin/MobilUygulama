@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getQuestionsByLesson, saveProgress, addXP } from '../services/contentService';
+import { getQuestionsByLesson } from '../services/dataService';
+import { saveProgress, addXP } from '../services/contentService';
 import { getCurrentUser } from '../services/authService';
 import QuestionMatching from '../components/QuestionMatching';
 import QuestionFillBlank from '../components/QuestionFillBlank';

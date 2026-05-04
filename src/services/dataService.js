@@ -83,14 +83,13 @@ export const getQuestionsByLesson = async (lessonId) => {
       .eq('lesson_id', lessonId);
     if (error) throw error;
     if (!data || data.length === 0) throw new Error('empty');
-    const db = await getDB();
-    await cacheQuestions(db, data);
-    return data;
-  } catch {
-    const db = await getDB();
-    return db.getAllAsync(
-      'SELECT * FROM questions WHERE lesson_id = ?',
-      [lessonId]
+    getDB().then(db => cacheQuestions(db, data)).catch(e =>
+      console.warn('[SQLite] cacheQuestions hata:', e.message)
     );
+    return data;
+  } catch (e) {
+    console.warn('[Supabase] getQuestionsByLesson hata:', e.message);
+    const db = await getDB();
+    return db.getAllAsync('SELECT * FROM questions WHERE lesson_id = ?', [lessonId]);
   }
 };
