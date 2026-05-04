@@ -8,15 +8,15 @@ export default function OnboardingScreen({ navigation }) {
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
 
-        {/* Başlık */}
+        {/* Logo */}
         <Text style={styles.logo}>MNEMO</Text>
 
         {/* Maskot */}
-        <DinoSvg width={220} height={220} style={styles.dino} />
+        <DinoSvg width={240} height={240} style={styles.dino} />
 
         {/* Slogan */}
         <Text style={styles.slogan}>
-          {'Eğlen\nİlerle\nTarih\nÖğren!'}
+          {'E ğ l e n\nİ l e r l e\nT a r i h\nÖ ğ r e n !'}
         </Text>
 
         <View style={styles.spacer} />
@@ -52,44 +52,44 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingTop: 16,
     paddingBottom: 16,
   },
   logo: {
     fontFamily: fonts.poppinsExtraBold,
-    fontSize: 48,
+    fontSize: 52,
     color: colors.accent,
     letterSpacing: 4,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   dino: {
-    marginBottom: 16,
+    marginBottom: 8,
   },
   slogan: {
     fontFamily: fonts.extraBold,
-    fontSize: 40,
+    fontSize: 36,
     color: colors.text,
     textAlign: 'center',
     lineHeight: 52,
+    letterSpacing: 2,
   },
   spacer: { flex: 1 },
   startBtn: {
     backgroundColor: colors.primary,
     width: '100%',
-    paddingVertical: 18,
+    paddingVertical: 20,
     borderRadius: 50,
     alignItems: 'center',
-    // 3D gölge efekti
     shadowColor: colors.primaryDark,
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 7 },
     shadowOpacity: 1,
     shadowRadius: 0,
-    elevation: 6,
-    marginBottom: 20,
+    elevation: 7,
+    marginBottom: 22,
   },
   startBtnText: {
     fontFamily: fonts.poppinsBold,
-    fontSize: 16,
+    fontSize: 17,
     color: colors.white,
     letterSpacing: 2,
   },

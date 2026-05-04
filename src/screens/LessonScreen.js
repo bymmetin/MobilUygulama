@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  View, Text, TouchableOpacity, StyleSheet,
+  Image, Dimensions, ScrollView,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getQuestionsByLesson } from '../services/dataService';
 import { saveProgress, addXP } from '../services/contentService';
 import { getCurrentUser } from '../services/authService';
+import { colors } from '../config/theme';
 
-const OPTIONS = ['A', 'B', 'C', 'D'];
+const { width: W } = Dimensions.get('window');
+const MAX_LIVES = 3;
 const XP_PER_CORRECT = 10;
 
 export default function LessonScreen({ route, navigation }) {
@@ -14,6 +19,7 @@ export default function LessonScreen({ route, navigation }) {
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState(null);
   const [correct, setCorrect] = useState(0);
+  const [lives, setLives] = useState(MAX_LIVES);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
@@ -23,35 +29,42 @@ export default function LessonScreen({ route, navigation }) {
 
   const question = questions[index];
   const isLast = index === questions.length - 1;
+  // option_a yoksa bu bir bilgi kartı (info card)
+  const isInfoCard = !question?.option_a;
 
-  const optionText = (q, letter) => {
-    const map = { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d };
-    return map[letter];
-  };
+  const OPTIONS = [
+    { key: 'A', value: question?.option_a },
+    { key: 'B', value: question?.option_b },
+    { key: 'C', value: question?.option_c },
+    { key: 'D', value: question?.option_d },
+  ].filter(o => o.value);
 
-  const handleSelect = (letter) => {
+  const handleSelect = (key) => {
     if (selected) return;
-    setSelected(letter);
-    if (letter === question.correct_answer) setCorrect((c) => c + 1);
+    setSelected(key);
+    if (key === question.correct_answer) {
+      setCorrect(c => c + 1);
+    } else {
+      setLives(l => Math.max(0, l - 1));
+    }
   };
 
   const handleNext = async () => {
     if (isLast) {
-      const score = Math.round(((correct + (selected === question?.correct_answer ? 1 : 0)) / questions.length) * 100);
-      const earnedXP = (correct + (selected === question?.correct_answer ? 1 : 0)) * XP_PER_CORRECT;
+      // correct state bu noktada güncel (handleSelect farklı event cycle'da çalıştı)
+      const score = questions.length > 0
+        ? Math.round((correct / questions.length) * 100)
+        : 100;
+      const earnedXP = correct * XP_PER_CORRECT;
       if (user) {
         await saveProgress(user.id, lesson.id, score);
         await addXP(user.id, earnedXP);
       }
       navigation.replace('Result', {
-        lesson,
-        score,
-        correct: correct + (selected === question?.correct_answer ? 1 : 0),
-        total: questions.length,
-        earnedXP,
+        lesson, score, correct, total: questions.length, earnedXP,
       });
     } else {
-      setIndex((i) => i + 1);
+      setIndex(i => i + 1);
       setSelected(null);
     }
   };
@@ -59,122 +72,225 @@ export default function LessonScreen({ route, navigation }) {
   if (!question) {
     return (
       <SafeAreaView style={styles.safe}>
-        <Text style={styles.empty}>Bu ders için henüz soru eklenmemiş.</Text>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>Geri Dön</Text>
-        </TouchableOpacity>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>Bu ders için henüz soru eklenmemiş.</Text>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Text style={styles.backLink}>Geri Dön</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
 
+  const isCorrect = selected && selected === question.correct_answer;
+  const canContinue = isInfoCard || !!selected;
+
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.closeText}>✕</Text>
-        </TouchableOpacity>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${((index) / questions.length) * 100}%` }]} />
-        </View>
-        <Text style={styles.counter}>{index + 1}/{questions.length}</Text>
-      </View>
-
-      <View style={styles.body}>
-        <Text style={styles.lessonName}>{lesson.title}</Text>
-        <Text style={styles.questionText}>{question.question_text}</Text>
-
-        <View style={styles.options}>
-          {OPTIONS.map((letter) => {
-            const text = optionText(question, letter);
-            if (!text) return null;
-            const isSelected = selected === letter;
-            const isCorrect = question.correct_answer === letter;
-            let bg = '#fff';
-            if (selected) {
-              if (isCorrect) bg = '#D1FAE5';
-              else if (isSelected) bg = '#FEE2E2';
-            }
-            return (
-              <TouchableOpacity
-                key={letter}
-                style={[styles.option, { backgroundColor: bg }, isSelected && styles.optionSelected]}
-                onPress={() => handleSelect(letter)}
-                disabled={!!selected}
-              >
-                <View style={styles.optionLetter}>
-                  <Text style={styles.optionLetterText}>{letter}</Text>
-                </View>
-                <Text style={styles.optionText}>{text}</Text>
-                {selected && isCorrect && <Text style={styles.tick}>✓</Text>}
-                {selected && isSelected && !isCorrect && <Text style={styles.cross}>✗</Text>}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-
-      {selected && (
-        <View style={styles.footer}>
-          <View style={[styles.feedbackBar, { backgroundColor: selected === question.correct_answer ? '#D1FAE5' : '#FEE2E2' }]}>
-            <Text style={[styles.feedbackText, { color: selected === question.correct_answer ? '#065F46' : '#991B1B' }]}>
-              {selected === question.correct_answer ? '✓ Doğru!' : `✗ Doğru cevap: ${question.correct_answer}`}
+    <View style={styles.safe}>
+      <SafeAreaView edges={['top']} style={{ backgroundColor: colors.background }}>
+        {/* Üst bar: kapat + can bilgisi */}
+        <View style={styles.topBar}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
+            <Text style={styles.closeBtnText}>✕</Text>
+          </TouchableOpacity>
+          <View style={styles.livesRow}>
+            <Text style={styles.heartEmoji}>❤️</Text>
+            <Text style={styles.livesLabel}>
+              CAN BİLGİSİ{'  '}{lives}/{MAX_LIVES}
             </Text>
           </View>
-          <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
-            <Text style={styles.nextBtnText}>{isLast ? 'Bitir' : 'Devam'}</Text>
-          </TouchableOpacity>
         </View>
-      )}
-    </SafeAreaView>
+      </SafeAreaView>
+
+      {/* İçerik */}
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentInner}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Resim alanı */}
+        {question.image_url ? (
+          <Image
+            source={{ uri: question.image_url }}
+            style={styles.image}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.imgPlaceholder}>
+            <Text style={styles.imgPlaceholderText}>IMAGE SIZE</Text>
+          </View>
+        )}
+
+        {/* Soru / bilgi metni */}
+        <Text style={[styles.questionText, isInfoCard && styles.infoText]}>
+          {question.question_text}
+        </Text>
+
+        {/* Şıklar — 2x2 ızgara */}
+        {!isInfoCard && (
+          <View style={styles.optionsGrid}>
+            {OPTIONS.map(({ key, value }) => {
+              const isSelected = selected === key;
+              const isCorrectOption = question.correct_answer === key;
+
+              let bg = colors.magentaBtn;
+              let shadow = colors.magentaBtnShadow;
+              if (selected) {
+                if (isCorrectOption) { bg = '#00BB00'; shadow = '#007700'; }
+                else if (isSelected) { bg = '#CC2020'; shadow = '#880000'; }
+                else { bg = '#CC00AA'; shadow = '#880070'; } // diğerleri soluk
+              }
+
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.optionBtn, { backgroundColor: bg, shadowColor: shadow }]}
+                  onPress={() => handleSelect(key)}
+                  disabled={!!selected}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.optionText}>{value}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Alt panel */}
+      <SafeAreaView edges={['bottom']} style={styles.bottomPanelWrap}>
+        <View style={styles.checkRow}>
+          <View style={[styles.checkCircle, isCorrect && styles.checkCircleActive]}>
+            <Text style={[styles.checkMark, isCorrect && styles.checkMarkActive]}>✓</Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={[styles.continueBtn, !canContinue && styles.continueBtnOff]}
+          onPress={canContinue ? handleNext : undefined}
+          activeOpacity={canContinue ? 0.85 : 1}
+        >
+          <Text style={styles.continueBtnText}>DEVAM</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+  safe: { flex: 1, backgroundColor: colors.background },
+
   topBar: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  closeBtn: { padding: 6 },
+  closeBtnText: { fontSize: 20, color: '#888', fontWeight: 'bold' },
+  livesRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  heartEmoji: { fontSize: 22 },
+  livesLabel: { fontSize: 13, fontWeight: '700', color: '#555' },
+
+  content: { flex: 1 },
+  contentInner: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 },
+
+  image: {
+    width: '100%',
+    height: W * 0.42,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  imgPlaceholder: {
+    width: '100%',
+    height: W * 0.42,
+    borderRadius: 20,
+    backgroundColor: colors.imgPlaceholder,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  imgPlaceholderText: {
+    fontSize: 18,
+    color: '#888',
+    fontWeight: '700',
+    transform: [{ rotate: '-20deg' }],
+  },
+
+  questionText: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#6A6070',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 30,
+  },
+  infoText: { fontSize: 38, lineHeight: 50 },
+
+  optionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'center',
+  },
+  optionBtn: {
+    width: (W - 44) / 2,
+    paddingVertical: 22,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 6,
+  },
+  optionText: { fontSize: 20, fontWeight: '900', color: colors.white },
+
+  bottomPanelWrap: {
+    backgroundColor: colors.bottomPanel,
     paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingTop: 14,
     paddingBottom: 8,
     gap: 12,
   },
-  closeText: { fontSize: 18, color: '#6B7280', fontWeight: 'bold' },
-  progressTrack: { flex: 1, height: 8, backgroundColor: '#E5E7EB', borderRadius: 4, overflow: 'hidden' },
-  progressFill: { height: 8, backgroundColor: '#4F46E5', borderRadius: 4 },
-  counter: { fontSize: 13, color: '#6B7280', fontWeight: '600', minWidth: 36, textAlign: 'right' },
-  body: { flex: 1, padding: 20 },
-  lessonName: { fontSize: 13, color: '#6B7280', fontWeight: '600', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
-  questionText: { fontSize: 20, fontWeight: '700', color: '#111827', lineHeight: 28, marginBottom: 28 },
-  options: { gap: 12 },
-  option: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    padding: 14,
-    gap: 12,
-  },
-  optionSelected: { borderColor: '#4F46E5' },
-  optionLetter: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#EEF2FF',
+  checkRow: { flexDirection: 'row' },
+  checkCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#C8C0CC',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  optionLetterText: { fontWeight: 'bold', color: '#4F46E5' },
-  optionText: { flex: 1, fontSize: 15, color: '#111827' },
-  tick: { fontSize: 18, color: '#059669' },
-  cross: { fontSize: 18, color: '#DC2626' },
-  footer: { paddingHorizontal: 20, paddingBottom: 24 },
-  feedbackBar: { borderRadius: 10, padding: 12, marginBottom: 12 },
-  feedbackText: { fontSize: 15, fontWeight: '700' },
-  nextBtn: { backgroundColor: '#4F46E5', borderRadius: 12, padding: 16, alignItems: 'center' },
-  nextBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  empty: { textAlign: 'center', marginTop: 80, fontSize: 16, color: '#6B7280', padding: 20 },
-  backBtn: { alignSelf: 'center', marginTop: 20 },
-  backText: { color: '#4F46E5', fontSize: 16, fontWeight: '600' },
+  checkCircleActive: { backgroundColor: '#C8C0CC' },
+  checkMark: { fontSize: 26, color: '#A098A8', fontWeight: 'bold' },
+  checkMarkActive: { color: '#00CC00' },
+
+  continueBtn: {
+    backgroundColor: colors.btnGreen,
+    borderRadius: 20,
+    paddingVertical: 20,
+    alignItems: 'center',
+    shadowColor: colors.btnGreenDark,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 6,
+  },
+  continueBtnOff: {
+    backgroundColor: '#A0A0A0',
+    shadowColor: '#606060',
+  },
+  continueBtnText: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: colors.white,
+    letterSpacing: 3,
+  },
+
+  emptyContainer: {
+    flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24,
+  },
+  emptyText: { fontSize: 16, color: '#6B7280', textAlign: 'center', marginBottom: 20 },
+  backLink: { fontSize: 16, color: colors.primary, fontWeight: '600' },
 });
