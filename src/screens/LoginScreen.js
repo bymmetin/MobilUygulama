@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { login } from '../services/authService';
@@ -8,6 +8,7 @@ export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const passwordRef = useRef(null);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -41,16 +42,21 @@ export default function LoginScreen({ navigation }) {
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
+            returnKeyType="next"
+            onSubmitEditing={() => passwordRef.current?.focus()}
           />
           <View style={styles.divider} />
           <View style={styles.passwordRow}>
             <TextInput
+              ref={passwordRef}
               style={[styles.input, styles.passwordInput]}
               placeholder="Password"
               placeholderTextColor={colors.textMuted}
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
+              returnKeyType="done"
+              onSubmitEditing={handleLogin}
             />
             <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPassword((v) => !v)}>
               <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁'}</Text>
@@ -77,9 +83,7 @@ export default function LoginScreen({ navigation }) {
             onPress={comingSoon}
             activeOpacity={0.85}
           >
-            <View style={styles.gCircle}>
-              <Text style={styles.gText}>G</Text>
-            </View>
+            <Text style={styles.gText}>G</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -197,19 +201,11 @@ const styles = StyleSheet.create({
     shadowRadius: 0,
     elevation: 6,
   },
-  gCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   gText: {
-    fontFamily: fonts.poppinsBold,
-    fontSize: 22,
-    color: colors.googleBtn,
-    lineHeight: 26,
+    fontFamily: fonts.poppinsExtraBold,
+    fontSize: 34,
+    color: colors.white,
+    lineHeight: 40,
   },
   appleIcon: {
     fontSize: 36,
