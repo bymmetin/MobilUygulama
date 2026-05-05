@@ -51,7 +51,7 @@ export default function LessonScreen({ route, navigation }) {
       : 0;
     const earnedXP = finalCorrect * XP_PER_CORRECT;
     if (user) {
-      await saveProgress(user.id, lesson.id, score);
+      await saveProgress(user.id, lesson.id, score, finalCorrect, questions.length, earnedXP);
       await addXP(user.id, earnedXP);
     }
     navigation.replace('Result', {

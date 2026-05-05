@@ -3,10 +3,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, fonts } from '../config/theme';
 
 export default function ResultScreen({ route, navigation }) {
-  const { lesson, score, correct, total, earnedXP } = route.params;
+  const { lesson, score, correct, total, earnedXP, review } = route.params;
   const passed = score >= 50;
 
   const goHome = () => navigation.navigate('HomeTabs');
+  const restart = () => navigation.replace('Lesson', { lesson });
 
   if (passed) {
     return (
@@ -51,10 +52,20 @@ export default function ResultScreen({ route, navigation }) {
 
           <View style={styles.spacer} />
 
-          {/* Yeşil DEVAM butonu */}
-          <TouchableOpacity style={styles.winBtn} onPress={goHome} activeOpacity={0.85}>
-            <Text style={styles.devamText}>DEVAM</Text>
-          </TouchableOpacity>
+          {review ? (
+            <>
+              <TouchableOpacity style={styles.winBtn} onPress={restart} activeOpacity={0.85}>
+                <Text style={styles.devamText}>TEKRARDAN BAŞLA</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.secondaryBtn} onPress={goHome} activeOpacity={0.85}>
+                <Text style={styles.secondaryBtnText}>Ana Sayfa</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <TouchableOpacity style={styles.winBtn} onPress={goHome} activeOpacity={0.85}>
+              <Text style={styles.devamText}>DEVAM</Text>
+            </TouchableOpacity>
+          )}
 
         </View>
       </SafeAreaView>
@@ -98,10 +109,20 @@ export default function ResultScreen({ route, navigation }) {
 
         <View style={styles.spacer} />
 
-        {/* Kırmızı DEVAM butonu */}
-        <TouchableOpacity style={styles.loseBtn} onPress={goHome} activeOpacity={0.85}>
-          <Text style={styles.devamText}>DEVAM</Text>
-        </TouchableOpacity>
+        {review ? (
+          <>
+            <TouchableOpacity style={styles.loseBtn} onPress={restart} activeOpacity={0.85}>
+              <Text style={styles.devamText}>TEKRARDAN BAŞLA</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.secondaryBtn} onPress={goHome} activeOpacity={0.85}>
+              <Text style={styles.secondaryBtnText}>Ana Sayfa</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <TouchableOpacity style={styles.loseBtn} onPress={goHome} activeOpacity={0.85}>
+            <Text style={styles.devamText}>DEVAM</Text>
+          </TouchableOpacity>
+        )}
 
       </View>
     </SafeAreaView>
@@ -202,10 +223,21 @@ const styles = StyleSheet.create({
     elevation: 7,
   },
   devamText: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '900',
     color: colors.white,
-    letterSpacing: 4,
+    letterSpacing: 2,
     fontFamily: fonts.poppinsExtraBold,
+  },
+  secondaryBtn: {
+    marginTop: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  secondaryBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#7A6080',
+    textDecorationLine: 'underline',
   },
 });

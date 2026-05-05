@@ -15,7 +15,7 @@ const ZIGZAG = [0.52, 0.34, 0.52, 0.68];
 
 export default function HomeScreen({ navigation }) {
   const [topicsData, setTopicsData] = useState([]);
-  const [completedIds, setCompletedIds] = useState(new Set());
+  const [progressMap, setProgressMap] = useState({}); // lessonId -> { score, correct_count, total_count, earned_xp }
   const [user, setUser] = useState(null);
 
   useFocusEffect(
@@ -32,7 +32,11 @@ export default function HomeScreen({ navigation }) {
         setTopicsData(data);
         if (u) {
           const progress = await getUserProgress(u.id);
-          setCompletedIds(new Set(progress.filter(p => p.completed).map(p => p.lesson_id)));
+          const map = {};
+          for (const p of progress) {
+            map[p.lesson_id] = p;
+          }
+          setProgressMap(map);
         }
       };
       load();
@@ -42,10 +46,31 @@ export default function HomeScreen({ navigation }) {
   const isUnlocked = (tIdx, lIdx) => {
     if (tIdx === 0 && lIdx === 0) return true;
     if (lIdx > 0) {
-      return completedIds.has(topicsData[tIdx]?.lessons[lIdx - 1]?.id);
+      const prevLessonId = topicsData[tIdx]?.lessons[lIdx - 1]?.id;
+      return prevLessonId in progressMap;
     }
     const prev = topicsData[tIdx - 1];
-    return prev != null && completedIds.has(prev.lessons[prev.lessons.length - 1]?.id);
+    if (!prev) return false;
+    const prevLastLessonId = prev.lessons[prev.lessons.length - 1]?.id;
+    return prevLastLessonId in progressMap;
+  };
+
+  const handleCoinPress = (lesson, unlocked) => {
+    if (!unlocked) return;
+    const p = progressMap[lesson.id];
+    if (p) {
+      // Daha önce çözülmüş — son sonucu göster, "Tekrardan başla" seçeneğiyle
+      navigation.navigate('Result', {
+        lesson,
+        score: p.score,
+        correct: p.correct_count ?? 0,
+        total: p.total_count ?? 0,
+        earnedXP: p.earned_xp ?? 0,
+        review: true,
+      });
+    } else {
+      navigation.navigate('Lesson', { lesson });
+    }
   };
 
   return (
@@ -69,33 +94,33 @@ export default function HomeScreen({ navigation }) {
             <View style={{ height: lessons.length * STEP + COIN + 16, position: 'relative' }}>
               {lessons.map((lesson, lIdx) => {
                 const unlocked = isUnlocked(tIdx, lIdx);
-                const done = completedIds.has(lesson.id);
+                const progress = progressMap[lesson.id];
+                const isPerfect = progress?.score === 100;
                 const isFirstEver = tIdx === 0 && lIdx === 0;
                 const left = ZIGZAG[lIdx % ZIGZAG.length] * W - COIN / 2;
                 const top = lIdx * STEP;
 
+                // Renk: tamamen doğru (100%) → altın, diğer her durum → gri
+                const coinStyle = isPerfect ? styles.coinUnlocked : styles.coinLocked;
+
                 return (
                   <TouchableOpacity
                     key={lesson.id}
-                    style={[
-                      styles.coin,
-                      unlocked ? styles.coinUnlocked : styles.coinLocked,
-                      { left, top },
-                    ]}
-                    onPress={() => unlocked && navigation.navigate('Lesson', { lesson })}
+                    style={[styles.coin, coinStyle, { left, top }]}
+                    onPress={() => handleCoinPress(lesson, unlocked)}
                     activeOpacity={unlocked ? 0.8 : 1}
                   >
-                    {unlocked && isFirstEver ? (
+                    {isFirstEver && unlocked ? (
                       <Image
                         source={require('../../assets/logo.png')}
                         style={styles.coinLogo}
                         resizeMode="contain"
                       />
-                    ) : (
-                      <Text style={styles.coinEmoji}>
-                        {unlocked ? (done ? '⭐' : '🟡') : '🔒'}
-                      </Text>
-                    )}
+                    ) : !unlocked ? (
+                      <Text style={styles.coinEmoji}>🔒</Text>
+                    ) : isPerfect ? (
+                      <Text style={styles.coinEmoji}>⭐</Text>
+                    ) : null}
                   </TouchableOpacity>
                 );
               })}

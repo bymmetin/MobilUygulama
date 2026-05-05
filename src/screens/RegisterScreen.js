@@ -69,12 +69,12 @@ export default function RegisterScreen({ navigation }) {
             placeholder="Email (@gmail.com)"
             placeholderTextColor={colors.textMuted}
             value={email}
-            onChangeText={(v) => { setEmail(v); setEmailTouched(true); }}
+            onChangeText={(v) => { setEmail(v); if (emailTouched) setEmailTouched(false); }}
             onBlur={() => setEmailTouched(true)}
             keyboardType="email-address"
             autoCapitalize="none"
             returnKeyType="next"
-            onSubmitEditing={() => passwordRef.current?.focus()}
+            onSubmitEditing={() => { setEmailTouched(true); passwordRef.current?.focus(); }}
           />
           <View style={styles.divider} />
           <View style={styles.passwordRow}>

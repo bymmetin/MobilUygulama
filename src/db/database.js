@@ -60,6 +60,9 @@ export const initDB = async () => {
       lesson_id INTEGER NOT NULL,
       completed INTEGER DEFAULT 0,
       score INTEGER DEFAULT 0,
+      correct_count INTEGER DEFAULT 0,
+      total_count INTEGER DEFAULT 0,
+      earned_xp INTEGER DEFAULT 0,
       FOREIGN KEY (user_id) REFERENCES users(id),
       FOREIGN KEY (lesson_id) REFERENCES lessons(id)
     );
@@ -68,10 +71,13 @@ export const initDB = async () => {
   // Mevcut DB'lere yeni kolonları ekle (hata fırlatırsa zaten var demektir)
   try { await db.execAsync('ALTER TABLE questions ADD COLUMN image_url TEXT'); } catch (_) {}
   try { await db.execAsync('ALTER TABLE questions ADD COLUMN audio_url TEXT'); } catch (_) {}
+  try { await db.execAsync('ALTER TABLE user_progress ADD COLUMN correct_count INTEGER DEFAULT 0'); } catch (_) {}
+  try { await db.execAsync('ALTER TABLE user_progress ADD COLUMN total_count INTEGER DEFAULT 0'); } catch (_) {}
+  try { await db.execAsync('ALTER TABLE user_progress ADD COLUMN earned_xp INTEGER DEFAULT 0'); } catch (_) {}
 
-    // Cache tablolarını temizle — Supabase'den her zaman taze veri gelsin
+  // Sadece Supabase'den senkronize edilen cache tablolarını temizle.
+  // user_progress KULLANICI VERİSİ — silinmemeli!
   await db.execAsync(`
-    DELETE FROM user_progress;
     DELETE FROM questions;
     DELETE FROM lessons;
     DELETE FROM topics;

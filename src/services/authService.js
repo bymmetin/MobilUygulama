@@ -47,18 +47,18 @@ export const register = async (username, email, password) => {
   }
 };
 
-export const login = async (email, password) => {
+export const login = async (emailOrUsername, password) => {
   try {
     const db = await getDB();
     const hashedPassword = await hashPassword(password);
 
     const user = await db.getFirstAsync(
-      'SELECT * FROM users WHERE email = ? AND password = ?',
-      [email, hashedPassword]
+      'SELECT * FROM users WHERE (email = ? OR username = ?) AND password = ?',
+      [emailOrUsername, emailOrUsername, hashedPassword]
     );
 
     if (!user) {
-      return { success: false, message: 'Email veya şifre hatalı' };
+      return { success: false, message: 'Email/kullanıcı adı veya şifre hatalı' };
     }
 
     await AsyncStorage.setItem('user', JSON.stringify(user));
