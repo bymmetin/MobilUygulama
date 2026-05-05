@@ -23,12 +23,15 @@ export default function LessonScreen({ route, navigation }) {
   const [lives, setLives] = useState(MAX_LIVES);
   const [user, setUser] = useState(null);
 
-  // Ortak cevap durumu — tüm soru tipleri için
+  // Cevap durumu
   const [answered, setAnswered] = useState(false);
   const [lastCorrect, setLastCorrect] = useState(false);
 
   // Çoktan seçmeli için seçilen şık
   const [selected, setSelected] = useState(null);
+
+  // Bitiş tetiklendi mi
+  const [finishing, setFinishing] = useState(false);
 
   useEffect(() => {
     getQuestionsByLesson(lesson.id).then(setQuestions);
@@ -38,35 +41,46 @@ export default function LessonScreen({ route, navigation }) {
   const question = questions[index];
   const isLast = index === questions.length - 1;
   const questionType = question?.question_type ?? 'multiple_choice';
-  // option_a yoksa bilgi kartı (info card)
   const isInfoCard = questionType === 'multiple_choice' && !question?.option_a;
 
-  // Cevap callback — child component'lerden veya MC'den gelir
+  const finishLesson = async (finalCorrect) => {
+    if (finishing) return;
+    setFinishing(true);
+    const score = questions.length > 0
+      ? Math.round((finalCorrect / questions.length) * 100)
+      : 0;
+    const earnedXP = finalCorrect * XP_PER_CORRECT;
+    if (user) {
+      await saveProgress(user.id, lesson.id, score);
+      await addXP(user.id, earnedXP);
+    }
+    navigation.replace('Result', {
+      lesson, score, correct: finalCorrect, total: questions.length, earnedXP,
+    });
+  };
+
+  // Cevap callback
   const handleAnswered = (isCorrect) => {
     if (answered) return;
     setAnswered(true);
     setLastCorrect(isCorrect);
+    const newCorrect = isCorrect ? correct + 1 : correct;
     if (isCorrect) {
-      setCorrect(c => c + 1);
+      setCorrect(newCorrect);
     } else {
-      setLives(l => Math.max(0, l - 1));
+      const newLives = Math.max(0, lives - 1);
+      setLives(newLives);
+      // Can bitti → direkt kaybetme ekranına git
+      if (newLives === 0) {
+        setTimeout(() => finishLesson(newCorrect), 700);
+      }
     }
   };
 
-  // Sonraki soru veya bitir
-  const handleNext = async () => {
+  // Sonraki / bitir
+  const handleNext = () => {
     if (isLast) {
-      const score = questions.length > 0
-        ? Math.round((correct / questions.length) * 100)
-        : 100;
-      const earnedXP = correct * XP_PER_CORRECT;
-      if (user) {
-        await saveProgress(user.id, lesson.id, score);
-        await addXP(user.id, earnedXP);
-      }
-      navigation.replace('Result', {
-        lesson, score, correct, total: questions.length, earnedXP,
-      });
+      finishLesson(correct);
     } else {
       setIndex(i => i + 1);
       setAnswered(false);
@@ -94,18 +108,11 @@ export default function LessonScreen({ route, navigation }) {
     );
   }
 
-  // Bilgi kartı için DEVAM her zaman aktif; diğerlerinde cevap verildikten sonra
-  const canContinue = isInfoCard || answered;
-
-  // Bilgi kartında DEVAM'a basınca otomatik cevaplandı say
-  const onContinuePress = () => {
-    if (isInfoCard && !answered) {
-      handleAnswered(true);
-      setTimeout(() => handleNext(), 0);
-      return;
-    }
-    handleNext();
-  };
+  const hasImage = !!question.image_url;
+  const showBottomPanel = answered || isInfoCard;
+  const panelBg = isInfoCard
+    ? colors.bottomPanel
+    : lastCorrect ? '#00C853' : '#FF2020';
 
   const OPTIONS = [
     { key: 'A', value: question.option_a },
@@ -137,18 +144,22 @@ export default function LessonScreen({ route, navigation }) {
         contentContainerStyle={styles.contentInner}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Çoktan seçmeli + bilgi kartı ── */}
         {questionType === 'multiple_choice' && (
           <>
-            {question.image_url ? (
-              <Image source={{ uri: question.image_url }} style={styles.image} resizeMode="cover" />
-            ) : (
-              <View style={styles.imgPlaceholder}>
-                <Text style={styles.imgPlaceholderText}>IMAGE SIZE</Text>
-              </View>
+            {/* Resim sadece varsa */}
+            {hasImage && (
+              <Image
+                source={{ uri: question.image_url }}
+                style={styles.image}
+                resizeMode="cover"
+              />
             )}
 
-            <Text style={[styles.questionText, isInfoCard && styles.infoText]}>
+            <Text style={[
+              styles.questionText,
+              isInfoCard && styles.infoText,
+              !hasImage && !isInfoCard && styles.questionTextNoImage,
+            ]}>
               {question.question_text}
             </Text>
 
@@ -172,7 +183,9 @@ export default function LessonScreen({ route, navigation }) {
                       disabled={answered}
                       activeOpacity={0.85}
                     >
-                      <Text style={styles.optionText}>{value}</Text>
+                      <Text style={styles.optionText} numberOfLines={3} adjustsFontSizeToFit>
+                        {value}
+                      </Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -181,7 +194,6 @@ export default function LessonScreen({ route, navigation }) {
           </>
         )}
 
-        {/* ── Eşleştirme ── */}
         {questionType === 'matching' && (
           <View style={styles.altWrap}>
             <Text style={styles.questionText}>{question.question_text}</Text>
@@ -189,7 +201,6 @@ export default function LessonScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* ── Boşluk doldurma ── */}
         {questionType === 'fill_blank' && (
           <View style={styles.altWrap}>
             <QuestionFillBlank question={question} onAnswered={handleAnswered} />
@@ -197,23 +208,34 @@ export default function LessonScreen({ route, navigation }) {
         )}
       </ScrollView>
 
-      {/* Alt panel */}
-      <SafeAreaView edges={['bottom']} style={styles.bottomPanelWrap}>
-        <View style={styles.checkRow}>
-          <View style={[styles.checkCircle, answered && lastCorrect && styles.checkCircleActive]}>
-            <Text style={[styles.checkMark, answered && lastCorrect && styles.checkMarkActive]}>✓</Text>
-          </View>
-        </View>
-        <TouchableOpacity
-          style={[styles.continueBtn, !canContinue && styles.continueBtnOff]}
-          onPress={canContinue ? onContinuePress : undefined}
-          activeOpacity={canContinue ? 0.85 : 1}
-        >
-          <Text style={styles.continueBtnText}>
-            {isLast && answered ? 'BİTİR' : 'DEVAM'}
-          </Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+      {/* Alt panel — yalnızca cevap verildikten sonra (bilgi kartları hariç) */}
+      {showBottomPanel && (
+        <SafeAreaView edges={['bottom']} style={[styles.bottomPanelWrap, { backgroundColor: panelBg }]}>
+          {answered && !isInfoCard && (
+            <View style={styles.feedbackRow}>
+              <Text style={styles.feedbackIcon}>{lastCorrect ? '✓' : '✗'}</Text>
+              <Text style={styles.feedbackText}>
+                {lastCorrect ? 'Doğru!' : 'Yanlış'}
+              </Text>
+            </View>
+          )}
+          <TouchableOpacity
+            style={[
+              styles.continueBtn,
+              { backgroundColor: isInfoCard ? colors.btnGreen : colors.white },
+            ]}
+            onPress={handleNext}
+            activeOpacity={0.85}
+          >
+            <Text style={[
+              styles.continueBtnText,
+              { color: isInfoCard ? colors.white : panelBg },
+            ]}>
+              {isLast ? 'BİTİR' : 'DEVAM'}
+            </Text>
+          </TouchableOpacity>
+        </SafeAreaView>
+      )}
     </View>
   );
 }
@@ -229,73 +251,90 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   closeBtn: { padding: 6 },
-  closeBtnText: { fontSize: 20, color: '#888', fontWeight: 'bold' },
+  closeBtnText: { fontSize: 22, color: '#888', fontWeight: 'bold' },
   livesRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   heartEmoji: { fontSize: 22 },
   livesLabel: { fontSize: 13, fontWeight: '700', color: '#555' },
 
   content: { flex: 1 },
-  contentInner: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 },
+  contentInner: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24 },
 
   image: {
     width: '100%',
-    height: W * 0.42,
+    height: W * 0.5,
     borderRadius: 20,
     marginBottom: 20,
-  },
-  imgPlaceholder: {
-    width: '100%',
-    height: W * 0.42,
-    borderRadius: 20,
-    backgroundColor: colors.imgPlaceholder,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  imgPlaceholderText: {
-    fontSize: 18, color: '#888', fontWeight: '700',
-    transform: [{ rotate: '-20deg' }],
   },
 
   questionText: {
-    fontSize: 22, fontWeight: '800', color: '#6A6070',
-    textAlign: 'center', marginBottom: 20, lineHeight: 30,
+    fontSize: 20, fontWeight: '800', color: '#4A4050',
+    textAlign: 'center', marginBottom: 24, lineHeight: 28,
   },
-  infoText: { fontSize: 38, lineHeight: 50 },
+  questionTextNoImage: { fontSize: 24, marginTop: 24, marginBottom: 32, lineHeight: 34 },
+  infoText: { fontSize: 32, lineHeight: 44, color: '#3A3040' },
 
-  optionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center' },
+  optionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
   optionBtn: {
     width: (W - 44) / 2,
-    paddingVertical: 22,
+    minHeight: 76,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     borderRadius: 18,
-    alignItems: 'center', justifyContent: 'center',
-    shadowOffset: { width: 0, height: 6 }, shadowOpacity: 1, shadowRadius: 0, elevation: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 6,
   },
-  optionText: { fontSize: 20, fontWeight: '900', color: colors.white },
+  optionText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.white,
+    textAlign: 'center',
+    lineHeight: 19,
+  },
 
   altWrap: { paddingTop: 4 },
 
   bottomPanelWrap: {
-    backgroundColor: colors.bottomPanel,
-    paddingHorizontal: 20, paddingTop: 14, paddingBottom: 8, gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+    gap: 14,
   },
-  checkRow: { flexDirection: 'row' },
-  checkCircle: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: '#C8C0CC', justifyContent: 'center', alignItems: 'center',
+  feedbackRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  checkCircleActive: { backgroundColor: '#C8C0CC' },
-  checkMark: { fontSize: 26, color: '#A098A8', fontWeight: 'bold' },
-  checkMarkActive: { color: '#00CC00' },
+  feedbackIcon: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.white,
+  },
+  feedbackText: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: colors.white,
+    letterSpacing: 1,
+  },
 
   continueBtn: {
-    backgroundColor: colors.btnGreen,
-    borderRadius: 20, paddingVertical: 20, alignItems: 'center',
-    shadowColor: colors.btnGreenDark,
-    shadowOffset: { width: 0, height: 6 }, shadowOpacity: 1, shadowRadius: 0, elevation: 6,
+    borderRadius: 16,
+    paddingVertical: 18,
+    alignItems: 'center',
   },
-  continueBtnOff: { backgroundColor: '#A0A0A0', shadowColor: '#606060' },
-  continueBtnText: { fontSize: 28, fontWeight: '900', color: colors.white, letterSpacing: 3 },
+  continueBtnText: {
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 3,
+  },
 
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   emptyText: { fontSize: 16, color: '#6B7280', textAlign: 'center', marginBottom: 20 },

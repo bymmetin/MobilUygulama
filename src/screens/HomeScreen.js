@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { getTopics, getLessonsByTopic } from '../services/dataService';
@@ -18,23 +18,26 @@ export default function HomeScreen({ navigation }) {
   const [completedIds, setCompletedIds] = useState(new Set());
   const [user, setUser] = useState(null);
 
-  const load = useCallback(async () => {
-    const [u, topics] = await Promise.all([getCurrentUser(), getTopics()]);
-    setUser(u);
-    const data = await Promise.all(
-      topics.map(async (topic) => ({
-        topic,
-        lessons: await getLessonsByTopic(topic.id),
-      }))
-    );
-    setTopicsData(data);
-    if (u) {
-      const progress = await getUserProgress(u.id);
-      setCompletedIds(new Set(progress.filter(p => p.completed).map(p => p.lesson_id)));
-    }
-  }, []);
-
-  useFocusEffect(load);
+  useFocusEffect(
+    useCallback(() => {
+      const load = async () => {
+        const [u, topics] = await Promise.all([getCurrentUser(), getTopics()]);
+        setUser(u);
+        const data = await Promise.all(
+          topics.map(async (topic) => ({
+            topic,
+            lessons: await getLessonsByTopic(topic.id),
+          }))
+        );
+        setTopicsData(data);
+        if (u) {
+          const progress = await getUserProgress(u.id);
+          setCompletedIds(new Set(progress.filter(p => p.completed).map(p => p.lesson_id)));
+        }
+      };
+      load();
+    }, [])
+  );
 
   const isUnlocked = (tIdx, lIdx) => {
     if (tIdx === 0 && lIdx === 0) return true;
@@ -82,11 +85,17 @@ export default function HomeScreen({ navigation }) {
                     onPress={() => unlocked && navigation.navigate('Lesson', { lesson })}
                     activeOpacity={unlocked ? 0.8 : 1}
                   >
-                    <Text style={styles.coinEmoji}>
-                      {unlocked
-                        ? isFirstEver ? '🦕' : done ? '⭐' : '🟡'
-                        : '🔒'}
-                    </Text>
+                    {unlocked && isFirstEver ? (
+                      <Image
+                        source={require('../../assets/logo.png')}
+                        style={styles.coinLogo}
+                        resizeMode="contain"
+                      />
+                    ) : (
+                      <Text style={styles.coinEmoji}>
+                        {unlocked ? (done ? '⭐' : '🟡') : '🔒'}
+                      </Text>
+                    )}
                   </TouchableOpacity>
                 );
               })}
@@ -177,6 +186,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   coinEmoji: { fontSize: 30 },
+  coinLogo: { width: 56, height: 56 },
 
   emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 80 },
   emptyText: { fontSize: 16, color: '#9B8FA0', fontWeight: '600' },
