@@ -1,19 +1,19 @@
 export const colors = {
   // Ana renkler
-  background: '#FFE4EF',       // pembe arka plan
-  primary: '#7C3AED',          // mor buton
-  primaryDark: '#5B21B6',      // buton gölgesi
-  accent: '#C8B000',           // sarı başlık (MNEMO)
-  text: '#2D1B1B',             // koyu metin
-  textMuted: '#9CA3AF',        // soluk metin
-  success: '#22C55E',          // yeşil link
+  background: '#FFE4EF',
+  primary: '#7C3AED',
+  primaryDark: '#5B21B6',
+  accent: '#C8B000',
+  text: '#2D1B1B',
+  textMuted: '#9CA3AF',
+  success: '#22C55E',
 
   // Giriş butonu renkleri
-  emailBtn: '#5C3D0E',         // koyu kahverengi — email butonu
+  emailBtn: '#5C3D0E',
   emailBtnShadow: '#3B2508',
-  googleBtn: '#7C3AED',        // mor — Google butonu
+  googleBtn: '#7C3AED',
   googleBtnShadow: '#5B21B6',
-  appleBtn: '#1A1A1A',         // siyah — Apple butonu
+  appleBtn: '#1A1A1A',
   appleBtnShadow: '#000000',
 
   // Beyaz / nötr
@@ -27,6 +27,30 @@ export const colors = {
   wrong: '#FEE2E2',
   wrongText: '#991B1B',
   xp: '#D97706',
+
+  // === Oyun ekran renkleri ===
+  magenta: '#FF00D4',
+  magentaDark: '#BB0090',
+  magentaBtn: '#FF00D4',
+  magentaBtnShadow: '#990080',
+
+  tabBar: '#9B7DAA',
+  tabBarIcon: '#D4C0DC',
+  tabBarIconActive: '#FFFFFF',
+
+  btnGreen: '#00EE00',
+  btnGreenDark: '#009900',
+
+  coinGold: '#D4B800',
+  coinGoldBorder: '#B89800',
+  coinGoldShadow: '#8A7200',
+  coinLocked: '#D0CDB8',
+  coinLockedBorder: '#A8A590',
+
+  heart: '#FF2020',
+  cardBg: '#D0C8D4',
+  bottomPanel: '#B4ACBA',
+  imgPlaceholder: '#C8C0CC',
 };
 
 export const fonts = {

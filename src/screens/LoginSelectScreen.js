@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, fonts } from '../config/theme';
 
-function ShadowButton({ bg, shadow, onPress, children }) {
+function ShadowBtn({ bg, shadow, onPress, children }) {
   return (
     <TouchableOpacity
       style={[styles.btn, { backgroundColor: bg, shadowColor: shadow }]}
@@ -19,27 +19,28 @@ export default function LoginSelectScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safe}>
+      {/* Geri butonu */}
       <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
         <Text style={styles.backArrow}>←</Text>
       </TouchableOpacity>
 
       <View style={styles.container}>
         <Text style={styles.title}>
-          {'DERS TAKİBİNİ\nYAPMAK İÇİN GİRİŞ\nYAP'}
+          {'DERS TAKİBİNİ\nYAPMAK İÇİN\nGİRİŞ YAP'}
         </Text>
 
         <View style={styles.buttons}>
-          {/* Email ile giriş */}
-          <ShadowButton
+          {/* Email */}
+          <ShadowBtn
             bg={colors.emailBtn}
             shadow={colors.emailBtnShadow}
             onPress={() => navigation.navigate('Login')}
           >
             <Text style={styles.btnText}>Email ve şifre ile giriş yap</Text>
-          </ShadowButton>
+          </ShadowBtn>
 
-          {/* Google ile giriş */}
-          <ShadowButton
+          {/* Google */}
+          <ShadowBtn
             bg={colors.googleBtn}
             shadow={colors.googleBtnShadow}
             onPress={comingSoon}
@@ -50,10 +51,10 @@ export default function LoginSelectScreen({ navigation }) {
               </View>
               <Text style={styles.btnText}>Google ile giriş yap</Text>
             </View>
-          </ShadowButton>
+          </ShadowBtn>
 
-          {/* Apple ile giriş */}
-          <ShadowButton
+          {/* Apple */}
+          <ShadowBtn
             bg={colors.appleBtn}
             shadow={colors.appleBtnShadow}
             onPress={comingSoon}
@@ -62,7 +63,7 @@ export default function LoginSelectScreen({ navigation }) {
               <Text style={styles.appleIcon}></Text>
               <Text style={styles.btnText}>Apple ile giriş yap</Text>
             </View>
-          </ShadowButton>
+          </ShadowBtn>
         </View>
       </View>
     </SafeAreaView>
@@ -70,57 +71,38 @@ export default function LoginSelectScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  backBtn: {
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 4,
-  },
-  backArrow: {
-    fontSize: 28,
-    color: colors.text,
-    fontWeight: '300',
-  },
-  container: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 32,
-  },
+  safe: { flex: 1, backgroundColor: colors.background },
+  backBtn: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 4 },
+  backArrow: { fontSize: 28, color: colors.text, fontWeight: '300' },
+
+  container: { flex: 1, paddingHorizontal: 24, paddingTop: 28 },
   title: {
     fontFamily: fonts.poppinsExtraBold,
-    fontSize: 28,
+    fontSize: 30,
     color: colors.text,
     textAlign: 'center',
-    lineHeight: 40,
-    marginBottom: 64,
+    lineHeight: 42,
+    marginBottom: 60,
   },
-  buttons: {
-    gap: 24,
-  },
+
+  buttons: { gap: 28 },
   btn: {
     borderRadius: 50,
-    paddingVertical: 20,
+    paddingVertical: 22,
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 7 },
     shadowOpacity: 1,
     shadowRadius: 0,
-    elevation: 6,
+    elevation: 7,
   },
   btnText: {
     fontFamily: fonts.bold,
     fontSize: 17,
     color: colors.white,
   },
-  iconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
+  iconRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   gCircle: {
     width: 28,
     height: 28,
@@ -135,9 +117,5 @@ const styles = StyleSheet.create({
     color: colors.googleBtn,
     lineHeight: 20,
   },
-  appleIcon: {
-    fontSize: 24,
-    color: colors.white,
-    lineHeight: 28,
-  },
+  appleIcon: { fontSize: 24, color: colors.white, lineHeight: 28 },
 });
