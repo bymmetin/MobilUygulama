@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { getTopics, getLessonsByTopic } from '../services/dataService';
@@ -9,6 +9,7 @@ import { colors } from '../config/theme';
 
 import MesaleSvg from '../../assets/mesale.svg';
 import KilitSvg from '../../assets/kilit.svg';
+import ParaSvg from '../../assets/Para.svg';
 
 const { width: W } = Dimensions.get('window');
 const COIN = 72;
@@ -99,11 +100,10 @@ export default function HomeScreen({ navigation }) {
                 const unlocked = isUnlocked(tIdx, lIdx);
                 const progress = progressMap[lesson.id];
                 const isPerfect = progress?.score === 100;
-                const isFirstEver = tIdx === 0 && lIdx === 0;
                 const left = ZIGZAG[lIdx % ZIGZAG.length] * W - COIN / 2;
                 const top = lIdx * STEP;
 
-                // Renk: tamamen doğru (100%) → altın, diğer her durum → gri
+                // Altın: sadece mükemmel (100%), geri kalan hepsi gri
                 const coinStyle = isPerfect ? styles.coinUnlocked : styles.coinLocked;
 
                 return (
@@ -113,13 +113,18 @@ export default function HomeScreen({ navigation }) {
                     onPress={() => handleCoinPress(lesson, unlocked)}
                     activeOpacity={unlocked ? 0.8 : 1}
                   >
-                    {isFirstEver && unlocked ? (
-                      <Image source={require('../../assets/logo.png')} style={styles.coinLogo} />
-                    ) : !unlocked ? (
+                    {!unlocked ? (
+                      // Kilitli → kilit ikonu
                       <KilitSvg width={36} height={36} />
-                    ) : isPerfect ? (
-                      <Text style={styles.coinEmoji}>⭐</Text>
-                    ) : null}
+                    ) : progress && !isPerfect ? (
+                      // Tamamlandı ama mükemmel değil → Para gri (soluk)
+                      <View style={styles.paraGray}>
+                        <ParaSvg width={52} height={52} />
+                      </View>
+                    ) : (
+                      // Açık ama başlanmamış VEYA mükemmel → Para renkli
+                      <ParaSvg width={52} height={52} />
+                    )}
                   </TouchableOpacity>
                 );
               })}
@@ -210,7 +215,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   coinEmoji: { fontSize: 30 },
-  coinLogo: { width: 56, height: 56 },
+  paraGray: { opacity: 0.35 },
 
   emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 80 },
   emptyText: { fontSize: 16, color: '#9B8FA0', fontWeight: '600' },
