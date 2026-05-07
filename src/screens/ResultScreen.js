@@ -1,6 +1,8 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, fonts } from '../config/theme';
+import TacSvg from '../../assets/tac.svg';
+import KurukafaSvg from '../../assets/kurukafa.svg';
 
 export default function ResultScreen({ route, navigation }) {
   const { lesson, score, correct, total, earnedXP, review } = route.params;
@@ -14,20 +16,9 @@ export default function ResultScreen({ route, navigation }) {
       <SafeAreaView style={styles.safe}>
         <View style={styles.container}>
 
-          {/* Kazanma grafiği — defne çelengi */}
+          {/* Kazanma grafiği — taç */}
           <View style={styles.graphicWrap}>
-            <Text style={styles.starTop}>⭐</Text>
-            <View style={styles.starRow}>
-              <Text style={styles.starSide}>⭐</Text>
-              <View style={styles.wreathBox}>
-                <Text style={styles.wreathEmoji}>🌿</Text>
-                <Text style={styles.wreathEmoji}>🌿</Text>
-              </View>
-              <Text style={styles.starSide}>⭐</Text>
-            </View>
-            <View style={styles.wreathBottom}>
-              <Text style={styles.leafBig}>🌿🌿🌿🌿🌿</Text>
-            </View>
+            <TacSvg width={220} height={220} />
             <Text style={styles.winLabel}>{'B A Ş A R I L I'}</Text>
           </View>
 
@@ -77,14 +68,9 @@ export default function ResultScreen({ route, navigation }) {
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
 
-        {/* Kaybetme grafiği — kafatası */}
+        {/* Kaybetme grafiği — kurukafa */}
         <View style={styles.graphicWrap}>
-          <View style={styles.xRow}>
-            <Text style={styles.xStar}>⭐✖</Text>
-            <Text style={styles.xStarBig}>⭐</Text>
-            <Text style={styles.xStar}>✖⭐</Text>
-          </View>
-          <Text style={styles.skullEmoji}>💀</Text>
+          <KurukafaSvg width={200} height={200} />
           <Text style={styles.loseLabel}>BAŞARISIZ</Text>
         </View>
 

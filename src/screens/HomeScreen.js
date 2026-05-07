@@ -1,11 +1,15 @@
 import { useCallback, useState } from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { getTopics, getLessonsByTopic } from '../services/dataService';
 import { getUserProgress } from '../services/contentService';
 import { getCurrentUser } from '../services/authService';
 import { colors } from '../config/theme';
+
+import MesaleSvg from '../../assets/mesale.svg';
+import KilitSvg from '../../assets/kilit.svg';
+import ParaSvg from '../../assets/Para.svg';
 
 const { width: W } = Dimensions.get('window');
 const COIN = 72;
@@ -77,7 +81,7 @@ export default function HomeScreen({ navigation }) {
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* Üst çubuk */}
       <View style={styles.topBar}>
-        <Text style={styles.torchEmoji}>🔦</Text>
+        <MesaleSvg width={32} height={32} />
         <Text style={styles.streakText}>{user?.streak ?? 0}</Text>
       </View>
 
@@ -111,13 +115,9 @@ export default function HomeScreen({ navigation }) {
                     activeOpacity={unlocked ? 0.8 : 1}
                   >
                     {isFirstEver && unlocked ? (
-                      <Image
-                        source={require('../../assets/logo.png')}
-                        style={styles.coinLogo}
-                        resizeMode="contain"
-                      />
+                      <ParaSvg width={56} height={56} />
                     ) : !unlocked ? (
-                      <Text style={styles.coinEmoji}>🔒</Text>
+                      <KilitSvg width={36} height={36} />
                     ) : isPerfect ? (
                       <Text style={styles.coinEmoji}>⭐</Text>
                     ) : null}
