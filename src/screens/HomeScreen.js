@@ -131,15 +131,21 @@ export default function HomeScreen({ navigation }) {
                     onPress={() => handleCoinPress(lesson, unlocked)}
                     activeOpacity={unlocked ? 0.8 : 1}
                   >
-                    {/* Para.png her durumda arka plan */}
-                    <Image
-                      source={require('../../assets/Para.png')}
-                      style={[
-                        styles.paraImg,
-                        !unlocked  && styles.paraFaded,    // kilitli → soluk
-                        isCompleted && styles.paraGray,    // tamamlandı → gri
-                      ]}
-                    />
+                    {/* 3D katman: dış View elevation ile dairesel gölge oluşturur */}
+                    <View style={[
+                      styles.coinShadow,
+                      !unlocked  && styles.coinFaded,
+                      isCompleted && styles.coinDone,
+                    ]}>
+                      {/* İç View Para.png'yi daireye kırpar */}
+                      <View style={styles.coinClip}>
+                        <Image
+                          source={require('../../assets/Para.png')}
+                          style={[styles.paraImg, isCompleted && { opacity: 0.4 }]}
+                        />
+                      </View>
+                    </View>
+
                     {/* Kilitli → kilit ikonu */}
                     {!unlocked && (
                       <View style={styles.lockOverlay}>
@@ -230,20 +236,37 @@ const styles = StyleSheet.create({
     height: COIN,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 6,
-    shadowColor: '#806000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 3,
   },
-  // Para.png tam alanı doldurur — arka plan veya daire yok
+
+  // Dış View → dairesel gölge (elevation arka plan rengini gerektiriyor)
+  coinShadow: {
+    width: COIN,
+    height: COIN,
+    borderRadius: COIN / 2,
+    backgroundColor: '#E0B800',   // altın taban rengi → Android elevation görünür
+    elevation: 10,
+    shadowColor: '#806000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.65,
+    shadowRadius: 4,
+  },
+  coinFaded: { opacity: 0.45 },
+  coinDone:  { backgroundColor: '#A0A0A0' },  // tamamlandı → gri taban
+
+  // İç View → Para.png'yi daireye kırpar
+  coinClip: {
+    width: COIN,
+    height: COIN,
+    borderRadius: COIN / 2,
+    overflow: 'hidden',
+  },
+
   paraImg: {
     width: COIN,
     height: COIN,
     resizeMode: 'contain',
   },
-  paraFaded: { opacity: 0.45 },   // kilitli coinler
-  paraGray:  { opacity: 0.35 },   // tamamlandı (geçildi)
+
   lockOverlay: {
     position: 'absolute',
     justifyContent: 'center',
