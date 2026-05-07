@@ -131,13 +131,18 @@ export default function HomeScreen({ navigation }) {
                     onPress={() => handleCoinPress(lesson, unlocked)}
                     activeOpacity={unlocked ? 0.8 : 1}
                   >
-                    {/* 3D katman: dış View elevation ile dairesel gölge oluşturur */}
+                    {/* Gölge dairesi — arkada, sağ-alta kaydırılmış */}
                     <View style={[
-                      styles.coinShadow,
-                      !unlocked  && styles.coinFaded,
-                      isCompleted && styles.coinDone,
+                      styles.coinShadowCircle,
+                      !unlocked  && { opacity: 0.45 },
+                      isCompleted && { backgroundColor: '#707070' },
+                    ]} />
+                    {/* Para yüzü — önde, normal konumda */}
+                    <View style={[
+                      styles.coinFace,
+                      !unlocked  && { opacity: 0.45 },
+                      isCompleted && { backgroundColor: '#C0C0C0' },
                     ]}>
-                      {/* İç View Para.png'yi daireye kırpar */}
                       <View style={styles.coinClip}>
                         <Image
                           source={require('../../assets/Para.png')}
@@ -234,26 +239,31 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: COIN,
     height: COIN,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 
-  // Dış View → dairesel gölge (elevation arka plan rengini gerektiriyor)
-  coinShadow: {
+  // Gölge dairesi: aynı boyut, sağa +5 / aşağı +6 kaydırılmış
+  coinShadowCircle: {
+    position: 'absolute',
     width: COIN,
     height: COIN,
     borderRadius: COIN / 2,
-    backgroundColor: '#E0B800',   // altın taban rengi → Android elevation görünür
-    elevation: 10,
-    shadowColor: '#806000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.65,
-    shadowRadius: 4,
+    backgroundColor: '#7A5800',
+    top: 6,
+    left: 5,
   },
-  coinFaded: { opacity: 0.45 },
-  coinDone:  { backgroundColor: '#A0A0A0' },  // tamamlandı → gri taban
 
-  // İç View → Para.png'yi daireye kırpar
+  // Para yüzü: tam üstte, coin sınırına yaslanmış
+  coinFace: {
+    position: 'absolute',
+    width: COIN,
+    height: COIN,
+    borderRadius: COIN / 2,
+    backgroundColor: '#E8C000',
+    top: 0,
+    left: 0,
+  },
+
+  // Para.png'yi daire içine kırpar
   coinClip: {
     width: COIN,
     height: COIN,

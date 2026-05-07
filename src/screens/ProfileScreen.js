@@ -37,8 +37,12 @@ export default function ProfileScreen() {
 
         {/* Üst satır: avatar + bilgiler başlığı */}
         <View style={styles.topRow}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
+          {/* Avatar container: gölge arkada, yüz önde */}
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatarShadow} />
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initials}</Text>
+            </View>
           </View>
           <View style={styles.infoBox}>
             <Text style={styles.infoBoxTitle}>BİLGİLER</Text>
@@ -116,21 +120,33 @@ const styles = StyleSheet.create({
     gap: 14,
     marginBottom: 24,
   },
+  // Avatar wrapper: normal boyut + shadow taşma payı
+  avatarContainer: {
+    width: 96,   // 90 + 6 sağa taşma payı
+    height: 96,  // 90 + 6 aşağı taşma payı
+    flexShrink: 0,
+  },
+  // Gölge dairesi: aynı boyut, sağ-alta kaydırılmış
+  avatarShadow: {
+    position: 'absolute',
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: '#8A8098',   // cardBg'den biraz koyu
+    bottom: 0,
+    right: 0,
+  },
+  // Yüz dairesi: sol üstte, gölgenin önünde
   avatar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
     width: 90,
     height: 90,
     borderRadius: 45,
     backgroundColor: colors.cardBg,
     justifyContent: 'center',
     alignItems: 'center',
-    flexShrink: 0,
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.7)',
-    elevation: 10,
-    shadowColor: '#5A5070',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.55,
-    shadowRadius: 5,
   },
   avatarText: { fontSize: 32, fontWeight: '900', color: '#5A4868' },
   infoBox: {
