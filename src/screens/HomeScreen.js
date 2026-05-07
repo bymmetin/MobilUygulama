@@ -235,25 +235,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // Coin wrapper: şekle uygun dairesel gölge
-  // Android'de elevation görünmesi için backgroundColor zorunlu
+  // Coin wrapper: küçük dairesel gölge, image merkezi
   coinWrap: {
     width: COIN,
     height: COIN,
     borderRadius: COIN / 2,
-    backgroundColor: '#F0C800',     // altın taban → Android elevation çalışır
-    elevation: 10,
+    backgroundColor: '#D4A800',     // biraz koyu altın → shadow daha nötr
+    elevation: 5,
     shadowColor: '#7A5000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.55,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.45,
+    shadowRadius: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   coinFaded: { opacity: 0.45 },
-  coinDone:  { backgroundColor: '#A0A0A0' },
+  coinDone:  { backgroundColor: '#909090' },
 
   paraImg: {
-    width: COIN,
-    height: COIN,
+    width: COIN * 1.25,    // coinWrap'ten büyük → sarı arka plan gizlenir
+    height: COIN * 1.25,
     resizeMode: 'contain',
   },
 
