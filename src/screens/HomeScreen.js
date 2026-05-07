@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { getTopics, getLessonsByTopic } from '../services/dataService';
@@ -9,7 +9,6 @@ import { colors } from '../config/theme';
 
 import MesaleSvg from '../../assets/mesale.svg';
 import KilitSvg from '../../assets/kilit.svg';
-import ParaSvg from '../../assets/Para.svg';
 
 const { width: W } = Dimensions.get('window');
 const COIN = 72;
@@ -115,7 +114,7 @@ export default function HomeScreen({ navigation }) {
                     activeOpacity={unlocked ? 0.8 : 1}
                   >
                     {isFirstEver && unlocked ? (
-                      <ParaSvg width={56} height={56} />
+                      <Image source={require('../../assets/logo.png')} style={styles.coinLogo} />
                     ) : !unlocked ? (
                       <KilitSvg width={36} height={36} />
                     ) : isPerfect ? (
