@@ -55,6 +55,14 @@ export const getUserProgress = async (userId) => {
   );
 };
 
+export const deleteProgress = async (userId, lessonId) => {
+  const db = await getDB();
+  await db.runAsync(
+    'DELETE FROM user_progress WHERE user_id = ? AND lesson_id = ?',
+    [userId, lessonId]
+  );
+};
+
 export const addXP = async (userId, amount) => {
   const db = await getDB();
   await db.runAsync(

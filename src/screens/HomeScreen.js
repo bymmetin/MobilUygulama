@@ -1,9 +1,9 @@
-import { useCallback, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { getTopics, getLessonsByTopic } from '../services/dataService';
-import { getUserProgress } from '../services/contentService';
+import { getUserProgress, deleteProgress } from '../services/contentService';
 import { getCurrentUser } from '../services/authService';
 import { colors } from '../config/theme';
 
@@ -58,6 +58,24 @@ export default function HomeScreen({ navigation }) {
     return prevLastLessonId in progressMap;
   };
 
+  // Önceki dersin ilerlemesini sil → bu dersin kilidi açılır (test için)
+  const handleReset = async (tIdx, lIdx) => {
+    if (!user) return;
+    let blockingLesson;
+    if (lIdx > 0) {
+      blockingLesson = topicsData[tIdx]?.lessons[lIdx - 1];
+    } else {
+      const prev = topicsData[tIdx - 1];
+      blockingLesson = prev?.lessons[prev.lessons.length - 1];
+    }
+    if (!blockingLesson) return;
+    await deleteProgress(user.id, blockingLesson.id);
+    const progress = await getUserProgress(user.id);
+    const map = {};
+    for (const p of progress) map[p.lesson_id] = p;
+    setProgressMap(map);
+  };
+
   const handleCoinPress = (lesson, unlocked) => {
     if (!unlocked) return;
     const p = progressMap[lesson.id];
@@ -101,28 +119,41 @@ export default function HomeScreen({ navigation }) {
                 const isPerfect = progress?.score === 100;
                 const left = ZIGZAG[lIdx % ZIGZAG.length] * W - COIN / 2;
                 const top = lIdx * STEP;
-
-                // Altın: sadece mükemmel (100%), geri kalan hepsi gri
-                const coinStyle = isPerfect ? styles.coinUnlocked : styles.coinLocked;
+                const isGray = progress && !isPerfect; // tamamlandı ama mükemmel değil
 
                 return (
-                  <TouchableOpacity
-                    key={lesson.id}
-                    style={[styles.coin, coinStyle, { left, top }]}
-                    onPress={() => handleCoinPress(lesson, unlocked)}
-                    activeOpacity={unlocked ? 0.8 : 1}
-                  >
-                    {!unlocked ? (
-                      // Kilitli → kilit ikonu
-                      <KilitSvg width={36} height={36} />
-                    ) : progress && !isPerfect ? (
-                      // Tamamlandı ama mükemmel değil → Para gri (soluk)
-                      <Image source={require('../../assets/Para.png')} style={[styles.paraImg, styles.paraGray]} />
-                    ) : (
-                      // Açık ama başlanmamış VEYA mükemmel → Para renkli
-                      <Image source={require('../../assets/Para.png')} style={styles.paraImg} />
+                  <React.Fragment key={lesson.id}>
+                    <TouchableOpacity
+                      style={[
+                        styles.coin,
+                        unlocked ? styles.coinPara : styles.coinLocked,
+                        { left, top },
+                      ]}
+                      onPress={() => handleCoinPress(lesson, unlocked)}
+                      activeOpacity={unlocked ? 0.8 : 1}
+                    >
+                      {!unlocked ? (
+                        // Kilitli → gri daire + kilit SVG
+                        <KilitSvg width={36} height={36} />
+                      ) : (
+                        // Açık → Para.png (gri veya renkli)
+                        <Image
+                          source={require('../../assets/Para.png')}
+                          style={[styles.paraImg, isGray && styles.paraGray]}
+                        />
+                      )}
+                    </TouchableOpacity>
+
+                    {/* Kilitli coinler için test butonu */}
+                    {!unlocked && (
+                      <TouchableOpacity
+                        style={[styles.resetBtn, { left: left - 4, top: top + COIN + 4 }]}
+                        onPress={() => handleReset(tIdx, lIdx)}
+                      >
+                        <Text style={styles.resetText}>Sıfırla</Text>
+                      </TouchableOpacity>
                     )}
-                  </TouchableOpacity>
+                  </React.Fragment>
                 );
               })}
             </View>
@@ -190,17 +221,17 @@ const styles = StyleSheet.create({
     borderRadius: COIN / 2,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
-  coinUnlocked: {
-    backgroundColor: colors.coinGold,
-    borderWidth: 4,
-    borderColor: colors.coinGoldBorder,
-    shadowColor: colors.coinGoldShadow,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 1,
+  // Açık coinler → arka plan yok, Para.png'nin kendisi daire
+  coinPara: {
+    shadowColor: '#806000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.5,
     shadowRadius: 0,
-    elevation: 6,
+    elevation: 5,
   },
+  // Kilitli coinler → gri daire
   coinLocked: {
     backgroundColor: colors.coinLocked,
     borderWidth: 4,
@@ -211,9 +242,20 @@ const styles = StyleSheet.create({
     shadowRadius: 0,
     elevation: 4,
   },
-  coinEmoji: { fontSize: 30 },
-  paraImg: { width: 56, height: 56, resizeMode: 'contain' },
+  paraImg: { width: COIN, height: COIN, resizeMode: 'cover' },
   paraGray: { opacity: 0.35 },
+  resetBtn: {
+    position: 'absolute',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    borderRadius: 8,
+  },
+  resetText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#5A5060',
+  },
 
   emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 80 },
   emptyText: { fontSize: 16, color: '#9B8FA0', fontWeight: '600' },
