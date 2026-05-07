@@ -131,27 +131,19 @@ export default function HomeScreen({ navigation }) {
                     onPress={() => handleCoinPress(lesson, unlocked)}
                     activeOpacity={unlocked ? 0.8 : 1}
                   >
-                    {/* Gölge dairesi — arkada, sağ-alta kaydırılmış */}
+                    {/* Coin — gölgeli wrapper içinde Para.png */}
                     <View style={[
-                      styles.coinShadowCircle,
-                      !unlocked  && { opacity: 0.45 },
-                      isCompleted && { backgroundColor: '#707070' },
-                    ]} />
-                    {/* Para yüzü — önde, normal konumda */}
-                    <View style={[
-                      styles.coinFace,
-                      !unlocked  && { opacity: 0.45 },
-                      isCompleted && { backgroundColor: '#C0C0C0' },
+                      styles.coinWrap,
+                      !unlocked  && styles.coinFaded,
+                      isCompleted && styles.coinDone,
                     ]}>
-                      <View style={styles.coinClip}>
-                        <Image
-                          source={require('../../assets/Para.png')}
-                          style={[styles.paraImg, isCompleted && { opacity: 0.4 }]}
-                        />
-                      </View>
+                      <Image
+                        source={require('../../assets/Para.png')}
+                        style={[styles.paraImg, isCompleted && { opacity: 0.4 }]}
+                      />
                     </View>
 
-                    {/* Kilitli → kilit ikonu */}
+                    {/* Kilitli → kilit ikonu ortada */}
                     {!unlocked && (
                       <View style={styles.lockOverlay}>
                         <KilitSvg width={34} height={34} />
@@ -239,37 +231,25 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: COIN,
     height: COIN,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
-  // Gölge dairesi: aynı boyut, sağa +5 / aşağı +6 kaydırılmış
-  coinShadowCircle: {
-    position: 'absolute',
+  // Coin wrapper: şekle uygun dairesel gölge
+  // Android'de elevation görünmesi için backgroundColor zorunlu
+  coinWrap: {
     width: COIN,
     height: COIN,
     borderRadius: COIN / 2,
-    backgroundColor: '#7A5800',
-    top: 6,
-    left: 5,
+    backgroundColor: '#F0C800',     // altın taban → Android elevation çalışır
+    elevation: 10,
+    shadowColor: '#7A5000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.55,
+    shadowRadius: 6,
   },
-
-  // Para yüzü: tam üstte, coin sınırına yaslanmış
-  coinFace: {
-    position: 'absolute',
-    width: COIN,
-    height: COIN,
-    borderRadius: COIN / 2,
-    backgroundColor: '#E8C000',
-    top: 0,
-    left: 0,
-  },
-
-  // Para.png'yi daire içine kırpar
-  coinClip: {
-    width: COIN,
-    height: COIN,
-    borderRadius: COIN / 2,
-    overflow: 'hidden',
-  },
+  coinFaded: { opacity: 0.45 },
+  coinDone:  { backgroundColor: '#A0A0A0' },
 
   paraImg: {
     width: COIN,
@@ -277,8 +257,10 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
 
+  // Kilit ikonu — coin alanının tam ortasında
   lockOverlay: {
     position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
   },
