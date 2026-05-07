@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { getTopics, getLessonsByTopic } from '../services/dataService';
@@ -7,9 +7,12 @@ import { getUserProgress } from '../services/contentService';
 import { getCurrentUser } from '../services/authService';
 import { colors } from '../config/theme';
 
+import MesaleSvg from '../../assets/mesale.svg';
+import KilitSvg from '../../assets/kilit.svg';
+
 const { width: W } = Dimensions.get('window');
-const COIN = 72;
-const STEP = 110;
+const COIN = 96;
+const STEP = 126;
 // Zigzag X pozisyonları: ekran genişliğinin yüzdesi olarak coin merkezi
 const ZIGZAG = [0.52, 0.34, 0.52, 0.68];
 
@@ -55,7 +58,7 @@ export default function HomeScreen({ navigation }) {
     return prevLastLessonId in progressMap;
   };
 
-  const handleCoinPress = (lesson, unlocked) => {
+const handleCoinPress = (lesson, unlocked) => {
     if (!unlocked) return;
     const p = progressMap[lesson.id];
     if (p) {
@@ -77,7 +80,7 @@ export default function HomeScreen({ navigation }) {
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* Üst çubuk */}
       <View style={styles.topBar}>
-        <Text style={styles.torchEmoji}>🔦</Text>
+        <MesaleSvg width={32} height={32} />
         <Text style={styles.streakText}>{user?.streak ?? 0}</Text>
       </View>
 
@@ -96,31 +99,32 @@ export default function HomeScreen({ navigation }) {
                 const unlocked = isUnlocked(tIdx, lIdx);
                 const progress = progressMap[lesson.id];
                 const isPerfect = progress?.score === 100;
-                const isFirstEver = tIdx === 0 && lIdx === 0;
                 const left = ZIGZAG[lIdx % ZIGZAG.length] * W - COIN / 2;
                 const top = lIdx * STEP;
-
-                // Renk: tamamen doğru (100%) → altın, diğer her durum → gri
-                const coinStyle = isPerfect ? styles.coinUnlocked : styles.coinLocked;
+                const isGray = progress && !isPerfect; // tamamlandı ama mükemmel değil
 
                 return (
                   <TouchableOpacity
                     key={lesson.id}
-                    style={[styles.coin, coinStyle, { left, top }]}
+                    style={[styles.coin, { left, top }]}
                     onPress={() => handleCoinPress(lesson, unlocked)}
                     activeOpacity={unlocked ? 0.8 : 1}
                   >
-                    {isFirstEver && unlocked ? (
-                      <Image
-                        source={require('../../assets/logo.png')}
-                        style={styles.coinLogo}
-                        resizeMode="contain"
-                      />
-                    ) : !unlocked ? (
-                      <Text style={styles.coinEmoji}>🔒</Text>
-                    ) : isPerfect ? (
-                      <Text style={styles.coinEmoji}>⭐</Text>
-                    ) : null}
+                    {/* Para.png her durumda arka plan olarak göster */}
+                    <Image
+                      source={require('../../assets/Para.png')}
+                      style={[
+                        styles.paraImg,
+                        !unlocked && styles.paraFaded,   // kilitli → soluk
+                        isGray && styles.paraGray,       // tamamlandı ama mükemmel değil → gri
+                      ]}
+                    />
+                    {/* Kilitli → kilit ikonu üstte */}
+                    {!unlocked && (
+                      <View style={styles.lockOverlay}>
+                        <KilitSvg width={34} height={34} />
+                      </View>
+                    )}
                   </TouchableOpacity>
                 );
               })}
@@ -186,32 +190,23 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: COIN,
     height: COIN,
-    borderRadius: COIN / 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  coinUnlocked: {
-    backgroundColor: colors.coinGold,
-    borderWidth: 4,
-    borderColor: colors.coinGoldBorder,
-    shadowColor: colors.coinGoldShadow,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 6,
+  // Para.png tam alanı doldurur — arka plan veya daire yok
+  paraImg: {
+    width: COIN,
+    height: COIN,
+    resizeMode: 'contain',
   },
-  coinLocked: {
-    backgroundColor: colors.coinLocked,
-    borderWidth: 4,
-    borderColor: colors.coinLockedBorder,
-    shadowColor: '#888070',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.8,
-    shadowRadius: 0,
-    elevation: 4,
+  paraFaded: { opacity: 0.45 },   // kilitli coinler
+  paraGray: { opacity: 0.35 },    // tamamlandı, mükemmel değil
+  // Kilit ikonu Para.png'nin üstünde ortalanmış
+  lockOverlay: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  coinEmoji: { fontSize: 30 },
-  coinLogo: { width: 56, height: 56 },
 
   emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 80 },
   emptyText: { fontSize: 16, color: '#9B8FA0', fontWeight: '600' },

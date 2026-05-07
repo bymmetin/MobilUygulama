@@ -43,3 +43,7 @@ yarn-error.*
 .env
 node_modules/
 .expo/
+
+# Claude
+.claude/
+soru.txt

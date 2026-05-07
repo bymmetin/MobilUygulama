@@ -50,9 +50,14 @@ export default function LessonScreen({ route, navigation }) {
       ? Math.round((finalCorrect / questions.length) * 100)
       : 0;
     const earnedXP = finalCorrect * XP_PER_CORRECT;
-    if (user) {
-      await saveProgress(user.id, lesson.id, score, finalCorrect, questions.length, earnedXP);
-      await addXP(user.id, earnedXP);
+    // DB hatası navigation'ı bloke etmesin diye try-catch
+    try {
+      if (user) {
+        await saveProgress(user.id, lesson.id, score, finalCorrect, questions.length, earnedXP);
+        await addXP(user.id, earnedXP);
+      }
+    } catch (e) {
+      console.warn('finishLesson DB hatası (navigation devam ediyor):', e.message);
     }
     navigation.replace('Result', {
       lesson, score, correct: finalCorrect, total: questions.length, earnedXP,
@@ -123,7 +128,7 @@ export default function LessonScreen({ route, navigation }) {
 
   return (
     <View style={styles.safe}>
-      {/* Üst bar */}
+      {/* Üst bar + progress bar */}
       <SafeAreaView edges={['top']} style={{ backgroundColor: colors.background }}>
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
@@ -136,6 +141,22 @@ export default function LessonScreen({ route, navigation }) {
             </Text>
           </View>
         </View>
+
+        {/* Duolingo tarzı progress bar */}
+        {questions.length > 0 && (
+          <View style={styles.progressTrack}>
+            <View
+              style={[
+                styles.progressFill,
+                {
+                  width: `${Math.round(
+                    (index + (answered ? 1 : 0)) / questions.length * 100
+                  )}%`,
+                },
+              ]}
+            />
+          </View>
+        )}
       </SafeAreaView>
 
       {/* İçerik */}
@@ -242,6 +263,21 @@ export default function LessonScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
+
+  progressTrack: {
+    height: 10,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    borderRadius: 5,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: 10,
+    backgroundColor: colors.btnGreen,
+    borderRadius: 5,
+    minWidth: 10,
+  },
 
   topBar: {
     flexDirection: 'row',

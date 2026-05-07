@@ -25,10 +25,12 @@ const cacheQuestions = async (db, questions) => {
   for (const q of questions) {
     await db.runAsync(
       `INSERT OR REPLACE INTO questions
-        (id, lesson_id, question_text, option_a, option_b, option_c, option_d, correct_answer, image_url, audio_url)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [q.id, q.lesson_id, q.question_text, q.option_a, q.option_b,
-       q.option_c, q.option_d, q.correct_answer, q.image_url ?? null, q.audio_url ?? null]
+        (id, lesson_id, question_text, question_type, option_a, option_b, option_c, option_d,
+         correct_answer, image_url, audio_url, extra_data)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [q.id, q.lesson_id, q.question_text, q.question_type ?? 'multiple_choice',
+       q.option_a, q.option_b, q.option_c, q.option_d, q.correct_answer,
+       q.image_url ?? null, q.audio_url ?? null, q.extra_data ?? null]
     );
   }
 };

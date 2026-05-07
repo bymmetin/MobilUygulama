@@ -3,7 +3,10 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { colors, fonts } from '../config/theme';
 
 export default function QuestionMatching({ question, onAnswered }) {
-  const pairs = useMemo(() => JSON.parse(question.extra_data).pairs, [question.id]);
+  const pairs = useMemo(() => {
+    try { return JSON.parse(question.extra_data)?.pairs ?? []; }
+    catch { return []; }
+  }, [question.id]);
 
   const rightItems = useMemo(
     () => [...pairs.map(p => p.right)].sort(() => Math.random() - 0.5),

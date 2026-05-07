@@ -1,6 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, View, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import HomeScreen from '../screens/HomeScreen';
 import LeaguesScreen from '../screens/LeaguesScreen';
 import DailyScreen from '../screens/DailyScreen';
@@ -9,22 +9,27 @@ import LessonScreen from '../screens/LessonScreen';
 import ResultScreen from '../screens/ResultScreen';
 import { colors } from '../config/theme';
 
+import HomeIcon from '../../assets/tab-home.svg';
+import LeaguesIcon from '../../assets/tab-leagues.svg';
+import DailyIcon from '../../assets/tab-daily.svg';
+import ProfileIcon from '../../assets/tab-profile.svg';
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Her tab için emoji ikon (sonra SVG/PNG ile değiştirilebilir)
 const TAB_ICONS = {
-  HomeTab: '🏛️',
-  LeaguesTab: '⚔️',
-  DailyTab: '📜',
-  ProfileTab: '🪖',
+  HomeTab: HomeIcon,
+  LeaguesTab: LeaguesIcon,
+  DailyTab: DailyIcon,
+  ProfileTab: ProfileIcon,
 };
 
 // Sabit boyutlu, arka planı kararan ikon — boyut değiştirmiyor
 function TabIcon({ name, focused }) {
+  const Icon = TAB_ICONS[name];
   return (
     <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
-      <Text style={styles.iconText}>{TAB_ICONS[name]}</Text>
+      <Icon width={36} height={36} />
     </View>
   );
 }
@@ -67,16 +72,13 @@ export default function MainStack() {
 
 const styles = StyleSheet.create({
   iconWrap: {
-    width: 56,
-    height: 48,
+    width: 60,
+    height: 50,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
   iconWrapActive: {
-    backgroundColor: 'rgba(0,0,0,0.22)',
-  },
-  iconText: {
-    fontSize: 26,
+    backgroundColor: 'rgba(0,0,0,0.25)',
   },
 });
