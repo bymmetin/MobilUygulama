@@ -24,8 +24,9 @@ export const getQuestionsByLesson = async (lessonId) => {
   );
 };
 
-export const saveProgress = async (userId, lessonId, score, correctCount = 0, totalCount = 0, earnedXP = 0) => {
+export const saveProgress = async (userId, lessonId, score, correctCount = 0, totalCount = 0, earnedXP = 0, wrongQuestionIds = []) => {
   const db = await getDB();
+  const wrongJson = JSON.stringify(wrongQuestionIds);
   const existing = await db.getFirstAsync(
     'SELECT * FROM user_progress WHERE user_id = ? AND lesson_id = ?',
     [userId, lessonId]
@@ -33,16 +34,16 @@ export const saveProgress = async (userId, lessonId, score, correctCount = 0, to
   if (existing) {
     await db.runAsync(
       `UPDATE user_progress
-       SET completed = 1, score = ?, correct_count = ?, total_count = ?, earned_xp = ?
+       SET completed = 1, score = ?, correct_count = ?, total_count = ?, earned_xp = ?, wrong_question_ids = ?
        WHERE user_id = ? AND lesson_id = ?`,
-      [score, correctCount, totalCount, earnedXP, userId, lessonId]
+      [score, correctCount, totalCount, earnedXP, wrongJson, userId, lessonId]
     );
   } else {
     await db.runAsync(
       `INSERT INTO user_progress
-        (user_id, lesson_id, completed, score, correct_count, total_count, earned_xp)
-       VALUES (?, ?, 1, ?, ?, ?, ?)`,
-      [userId, lessonId, score, correctCount, totalCount, earnedXP]
+        (user_id, lesson_id, completed, score, correct_count, total_count, earned_xp, wrong_question_ids)
+       VALUES (?, ?, 1, ?, ?, ?, ?, ?)`,
+      [userId, lessonId, score, correctCount, totalCount, earnedXP, wrongJson]
     );
   }
 };

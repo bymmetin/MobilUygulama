@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   Image, Dimensions, ScrollView,
@@ -17,6 +17,11 @@ const XP_PER_CORRECT = 10;
 
 export default function LessonScreen({ route, navigation }) {
   const { lesson } = route.params;
+  // Retry modu: yalnızca yanlış soruları çöz
+  const questionIds = route.params?.questionIds ?? null;   // null = tüm sorular
+  const isRetry    = route.params?.isRetry    ?? false;
+  const originalTotal = route.params?.originalTotal ?? null;
+
   const [questions, setQuestions] = useState([]);
   const [index, setIndex] = useState(0);
   const [correct, setCorrect] = useState(0);
@@ -33,8 +38,18 @@ export default function LessonScreen({ route, navigation }) {
   // Bitiş tetiklendi mi
   const [finishing, setFinishing] = useState(false);
 
+  // Yanlış cevaplanan soru ID'leri (stale closure sorununu önlemek için ref)
+  const wrongIdsRef = useRef([]);
+
   useEffect(() => {
-    getQuestionsByLesson(lesson.id).then(setQuestions);
+    getQuestionsByLesson(lesson.id).then(allQs => {
+      if (questionIds && questionIds.length > 0) {
+        // Retry: sadece daha önce yanlış yapılan soruları yükle
+        setQuestions(allQs.filter(q => questionIds.includes(q.id)));
+      } else {
+        setQuestions(allQs);
+      }
+    });
     getCurrentUser().then(setUser);
   }, []);
 
@@ -43,24 +58,39 @@ export default function LessonScreen({ route, navigation }) {
   const questionType = question?.question_type ?? 'multiple_choice';
   const isInfoCard = questionType === 'multiple_choice' && !question?.option_a;
 
-  const finishLesson = async (finalCorrect) => {
+  const finishLesson = async (finalCorrect, explicitWrongIds) => {
     if (finishing) return;
     setFinishing(true);
-    const score = questions.length > 0
-      ? Math.round((finalCorrect / questions.length) * 100)
-      : 0;
+
+    // Retry modunda tüm sorular doğruysa → tam tamamlandı (100%)
+    const allRetryCorrect = isRetry && finalCorrect === questions.length;
+    const finalWrongIds   = explicitWrongIds ?? wrongIdsRef.current;
+    const wrongIdsToSave  = allRetryCorrect ? [] : finalWrongIds;
+
+    // Skor hesabı
+    const displayTotal   = allRetryCorrect ? (originalTotal ?? questions.length) : questions.length;
+    const displayCorrect = allRetryCorrect ? displayTotal : finalCorrect;
+    const score = allRetryCorrect
+      ? 100
+      : (questions.length > 0 ? Math.round((finalCorrect / questions.length) * 100) : 0);
+
     const earnedXP = finalCorrect * XP_PER_CORRECT;
-    // DB hatası navigation'ı bloke etmesin diye try-catch
+
     try {
       if (user) {
-        await saveProgress(user.id, lesson.id, score, finalCorrect, questions.length, earnedXP);
+        await saveProgress(
+          user.id, lesson.id, score,
+          displayCorrect, displayTotal, earnedXP,
+          wrongIdsToSave
+        );
         await addXP(user.id, earnedXP);
       }
     } catch (e) {
       console.warn('finishLesson DB hatası (navigation devam ediyor):', e.message);
     }
+
     navigation.replace('Result', {
-      lesson, score, correct: finalCorrect, total: questions.length, earnedXP,
+      lesson, score, correct: displayCorrect, total: displayTotal, earnedXP,
     });
   };
 
@@ -73,11 +103,14 @@ export default function LessonScreen({ route, navigation }) {
     if (isCorrect) {
       setCorrect(newCorrect);
     } else {
+      // Yanlış cevap → soru ID'sini kaydet
+      wrongIdsRef.current = [...wrongIdsRef.current, question.id];
       const newLives = Math.max(0, lives - 1);
       setLives(newLives);
       // Can bitti → direkt kaybetme ekranına git
       if (newLives === 0) {
-        setTimeout(() => finishLesson(newCorrect), 700);
+        const captured = wrongIdsRef.current;
+        setTimeout(() => finishLesson(newCorrect, captured), 700);
       }
     }
   };

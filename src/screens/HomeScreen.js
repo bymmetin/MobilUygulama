@@ -46,23 +46,28 @@ export default function HomeScreen({ navigation }) {
     }, [])
   );
 
+  // Bir sonraki ders yalnızca önceki ders %50+ ile geçilmişse açılır
   const isUnlocked = (tIdx, lIdx) => {
     if (tIdx === 0 && lIdx === 0) return true;
     if (lIdx > 0) {
-      const prevLessonId = topicsData[tIdx]?.lessons[lIdx - 1]?.id;
-      return prevLessonId in progressMap;
+      const prevId = topicsData[tIdx]?.lessons[lIdx - 1]?.id;
+      return (progressMap[prevId]?.score ?? 0) >= 50;
     }
     const prev = topicsData[tIdx - 1];
     if (!prev) return false;
-    const prevLastLessonId = prev.lessons[prev.lessons.length - 1]?.id;
-    return prevLastLessonId in progressMap;
+    const prevLastId = prev.lessons[prev.lessons.length - 1]?.id;
+    return (progressMap[prevLastId]?.score ?? 0) >= 50;
   };
 
-const handleCoinPress = (lesson, unlocked) => {
+  const handleCoinPress = (lesson, unlocked) => {
     if (!unlocked) return;
     const p = progressMap[lesson.id];
-    if (p) {
-      // Daha önce çözülmüş — son sonucu göster, "Tekrardan başla" seçeneğiyle
+
+    if (!p) {
+      // Hiç çözülmemiş → baştan başla
+      navigation.navigate('Lesson', { lesson });
+    } else if (p.score === 100) {
+      // Mükemmel → sonuç ekranını göster
       navigation.navigate('Result', {
         lesson,
         score: p.score,
@@ -71,7 +76,23 @@ const handleCoinPress = (lesson, unlocked) => {
         earnedXP: p.earned_xp ?? 0,
         review: true,
       });
+    } else if (p.score >= 50) {
+      // Geçildi ama eksik var → yanlış soruları tekrar çöz
+      let wrongIds = [];
+      try { wrongIds = p.wrong_question_ids ? JSON.parse(p.wrong_question_ids) : []; } catch (_) {}
+      if (wrongIds.length > 0) {
+        navigation.navigate('Lesson', {
+          lesson,
+          questionIds: wrongIds,
+          isRetry: true,
+          originalTotal: p.total_count ?? 0,
+        });
+      } else {
+        // wrong_question_ids yoksa dersi baştan başlat
+        navigation.navigate('Lesson', { lesson });
+      }
     } else {
+      // Başarısız (< %50) → dersi baştan başlat
       navigation.navigate('Lesson', { lesson });
     }
   };
@@ -98,10 +119,10 @@ const handleCoinPress = (lesson, unlocked) => {
               {lessons.map((lesson, lIdx) => {
                 const unlocked = isUnlocked(tIdx, lIdx);
                 const progress = progressMap[lesson.id];
-                const isPerfect = progress?.score === 100;
+                const score    = progress?.score ?? 0;
+                const isCompleted = progress && score >= 50;   // geçildi → gri + tik
                 const left = ZIGZAG[lIdx % ZIGZAG.length] * W - COIN / 2;
-                const top = lIdx * STEP;
-                const isGray = progress && !isPerfect; // tamamlandı ama mükemmel değil
+                const top  = lIdx * STEP;
 
                 return (
                   <TouchableOpacity
@@ -110,19 +131,25 @@ const handleCoinPress = (lesson, unlocked) => {
                     onPress={() => handleCoinPress(lesson, unlocked)}
                     activeOpacity={unlocked ? 0.8 : 1}
                   >
-                    {/* Para.png her durumda arka plan olarak göster */}
+                    {/* Para.png her durumda arka plan */}
                     <Image
                       source={require('../../assets/Para.png')}
                       style={[
                         styles.paraImg,
-                        !unlocked && styles.paraFaded,   // kilitli → soluk
-                        isGray && styles.paraGray,       // tamamlandı ama mükemmel değil → gri
+                        !unlocked  && styles.paraFaded,    // kilitli → soluk
+                        isCompleted && styles.paraGray,    // tamamlandı → gri
                       ]}
                     />
-                    {/* Kilitli → kilit ikonu üstte */}
+                    {/* Kilitli → kilit ikonu */}
                     {!unlocked && (
                       <View style={styles.lockOverlay}>
                         <KilitSvg width={34} height={34} />
+                      </View>
+                    )}
+                    {/* Tamamlandı → yeşil tik rozeti */}
+                    {isCompleted && (
+                      <View style={styles.tickBadge}>
+                        <Text style={styles.tickText}>✓</Text>
                       </View>
                     )}
                   </TouchableOpacity>
@@ -200,12 +227,31 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   paraFaded: { opacity: 0.45 },   // kilitli coinler
-  paraGray: { opacity: 0.35 },    // tamamlandı, mükemmel değil
-  // Kilit ikonu Para.png'nin üstünde ortalanmış
+  paraGray:  { opacity: 0.35 },   // tamamlandı (geçildi)
   lockOverlay: {
     position: 'absolute',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  // Tamamlandı rozeti — sağ alt köşe
+  tickBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#00CC44',
+    borderWidth: 2,
+    borderColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tickText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '900',
+    lineHeight: 16,
   },
 
   emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 80 },

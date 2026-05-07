@@ -65,6 +65,7 @@ export const initDB = async () => {
       correct_count INTEGER DEFAULT 0,
       total_count INTEGER DEFAULT 0,
       earned_xp INTEGER DEFAULT 0,
+      wrong_question_ids TEXT DEFAULT NULL,
       FOREIGN KEY (user_id) REFERENCES users(id),
       FOREIGN KEY (lesson_id) REFERENCES lessons(id)
     );
@@ -78,6 +79,7 @@ export const initDB = async () => {
   try { await db.execAsync('ALTER TABLE user_progress ADD COLUMN correct_count INTEGER DEFAULT 0'); } catch (_) {}
   try { await db.execAsync('ALTER TABLE user_progress ADD COLUMN total_count INTEGER DEFAULT 0'); } catch (_) {}
   try { await db.execAsync('ALTER TABLE user_progress ADD COLUMN earned_xp INTEGER DEFAULT 0'); } catch (_) {}
+  try { await db.execAsync('ALTER TABLE user_progress ADD COLUMN wrong_question_ids TEXT DEFAULT NULL'); } catch (_) {}
 
   // Supabase cache tablolarını ve soru çözme ilerlemesini temizle
   await db.execAsync(`
