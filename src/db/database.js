@@ -79,12 +79,12 @@ export const initDB = async () => {
   try { await db.execAsync('ALTER TABLE user_progress ADD COLUMN total_count INTEGER DEFAULT 0'); } catch (_) {}
   try { await db.execAsync('ALTER TABLE user_progress ADD COLUMN earned_xp INTEGER DEFAULT 0'); } catch (_) {}
 
-  // Sadece Supabase'den senkronize edilen cache tablolarını temizle.
-  // user_progress KULLANICI VERİSİ — silinmemeli!
+  // Supabase cache tablolarını ve soru çözme ilerlemesini temizle
   await db.execAsync(`
     DELETE FROM questions;
     DELETE FROM lessons;
     DELETE FROM topics;
+    DELETE FROM user_progress;
   `);
 
   console.log('Veritabanı hazır');

@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Image
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { getTopics, getLessonsByTopic } from '../services/dataService';
-import { getUserProgress, deleteProgress } from '../services/contentService';
+import { getUserProgress } from '../services/contentService';
 import { getCurrentUser } from '../services/authService';
 import { colors } from '../config/theme';
 
@@ -11,8 +11,8 @@ import MesaleSvg from '../../assets/mesale.svg';
 import KilitSvg from '../../assets/kilit.svg';
 
 const { width: W } = Dimensions.get('window');
-const COIN = 72;
-const STEP = 110;
+const COIN = 96;
+const STEP = 126;
 // Zigzag X pozisyonları: ekran genişliğinin yüzdesi olarak coin merkezi
 const ZIGZAG = [0.52, 0.34, 0.52, 0.68];
 
@@ -58,25 +58,7 @@ export default function HomeScreen({ navigation }) {
     return prevLastLessonId in progressMap;
   };
 
-  // Önceki dersin ilerlemesini sil → bu dersin kilidi açılır (test için)
-  const handleReset = async (tIdx, lIdx) => {
-    if (!user) return;
-    let blockingLesson;
-    if (lIdx > 0) {
-      blockingLesson = topicsData[tIdx]?.lessons[lIdx - 1];
-    } else {
-      const prev = topicsData[tIdx - 1];
-      blockingLesson = prev?.lessons[prev.lessons.length - 1];
-    }
-    if (!blockingLesson) return;
-    await deleteProgress(user.id, blockingLesson.id);
-    const progress = await getUserProgress(user.id);
-    const map = {};
-    for (const p of progress) map[p.lesson_id] = p;
-    setProgressMap(map);
-  };
-
-  const handleCoinPress = (lesson, unlocked) => {
+const handleCoinPress = (lesson, unlocked) => {
     if (!unlocked) return;
     const p = progressMap[lesson.id];
     if (p) {
@@ -122,38 +104,28 @@ export default function HomeScreen({ navigation }) {
                 const isGray = progress && !isPerfect; // tamamlandı ama mükemmel değil
 
                 return (
-                  <React.Fragment key={lesson.id}>
-                    <TouchableOpacity
+                  <TouchableOpacity
+                    key={lesson.id}
+                    style={[styles.coin, { left, top }]}
+                    onPress={() => handleCoinPress(lesson, unlocked)}
+                    activeOpacity={unlocked ? 0.8 : 1}
+                  >
+                    {/* Para.png her durumda arka plan olarak göster */}
+                    <Image
+                      source={require('../../assets/Para.png')}
                       style={[
-                        styles.coin,
-                        unlocked ? styles.coinPara : styles.coinLocked,
-                        { left, top },
+                        styles.paraImg,
+                        !unlocked && styles.paraFaded,   // kilitli → soluk
+                        isGray && styles.paraGray,       // tamamlandı ama mükemmel değil → gri
                       ]}
-                      onPress={() => handleCoinPress(lesson, unlocked)}
-                      activeOpacity={unlocked ? 0.8 : 1}
-                    >
-                      {!unlocked ? (
-                        // Kilitli → gri daire + kilit SVG
-                        <KilitSvg width={36} height={36} />
-                      ) : (
-                        // Açık → Para.png (gri veya renkli)
-                        <Image
-                          source={require('../../assets/Para.png')}
-                          style={[styles.paraImg, isGray && styles.paraGray]}
-                        />
-                      )}
-                    </TouchableOpacity>
-
-                    {/* Kilitli coinler için test butonu */}
+                    />
+                    {/* Kilitli → kilit ikonu üstte */}
                     {!unlocked && (
-                      <TouchableOpacity
-                        style={[styles.resetBtn, { left: left - 4, top: top + COIN + 4 }]}
-                        onPress={() => handleReset(tIdx, lIdx)}
-                      >
-                        <Text style={styles.resetText}>Sıfırla</Text>
-                      </TouchableOpacity>
+                      <View style={styles.lockOverlay}>
+                        <KilitSvg width={34} height={34} />
+                      </View>
                     )}
-                  </React.Fragment>
+                  </TouchableOpacity>
                 );
               })}
             </View>
@@ -218,43 +190,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: COIN,
     height: COIN,
-    borderRadius: COIN / 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // Açık coinler → arka plan yok, Para.png'nin kendisi daire
-  coinPara: {
-    shadowColor: '#806000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.5,
-    shadowRadius: 0,
-    elevation: 5,
+  // Para.png tam alanı doldurur — arka plan veya daire yok
+  paraImg: {
+    width: COIN,
+    height: COIN,
+    resizeMode: 'contain',
   },
-  // Kilitli coinler → gri daire
-  coinLocked: {
-    backgroundColor: colors.coinLocked,
-    borderWidth: 4,
-    borderColor: colors.coinLockedBorder,
-    shadowColor: '#888070',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.8,
-    shadowRadius: 0,
-    elevation: 4,
-  },
-  // Para.png'ye kendi borderRadius'u — overflow:hidden olmadan da daire görünür
-  paraImg: { width: COIN, height: COIN, borderRadius: COIN / 2, resizeMode: 'cover' },
-  paraGray: { opacity: 0.35 },
-  resetBtn: {
+  paraFaded: { opacity: 0.45 },   // kilitli coinler
+  paraGray: { opacity: 0.35 },    // tamamlandı, mükemmel değil
+  // Kilit ikonu Para.png'nin üstünde ortalanmış
+  lockOverlay: {
     position: 'absolute',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: 'rgba(0,0,0,0.15)',
-    borderRadius: 8,
-  },
-  resetText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#5A5060',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 80 },
