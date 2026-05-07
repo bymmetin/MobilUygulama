@@ -87,7 +87,7 @@ export default function LoginScreen({ navigation }) {
         {/* Google & Apple */}
         <View style={styles.socialRow}>
           <TouchableOpacity
-            style={[styles.socialBtn, { backgroundColor: colors.googleBtn, shadowColor: colors.googleBtnShadow }]}
+            style={[styles.socialBtn, { backgroundColor: colors.googleBtn, borderBottomColor: colors.googleBtnShadow }]}
             onPress={comingSoon}
             activeOpacity={0.85}
           >
@@ -95,7 +95,7 @@ export default function LoginScreen({ navigation }) {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.socialBtn, { backgroundColor: colors.appleBtn, shadowColor: colors.appleBtnShadow }]}
+            style={[styles.socialBtn, { backgroundColor: colors.appleBtn, borderBottomColor: colors.appleBtnShadow }]}
             onPress={comingSoon}
             activeOpacity={0.85}
           >
@@ -177,13 +177,12 @@ const styles = StyleSheet.create({
   loginBtn: {
     backgroundColor: colors.primary,
     borderRadius: 50,
-    paddingVertical: 18,
+    paddingTop: 18,
+    paddingBottom: 13,
     alignItems: 'center',
-    shadowColor: colors.primaryDark,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 6,
+    borderBottomWidth: 6,
+    borderBottomColor: colors.primaryDark,
+    elevation: 3,
   },
   loginBtnText: {
     fontFamily: fonts.poppinsBold,
@@ -209,14 +208,13 @@ const styles = StyleSheet.create({
   },
   socialBtn: {
     width: 80,
-    height: 80,
+    height: 74,         // 80 - borderBottom 6
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 6,
+    borderBottomWidth: 6,
+    elevation: 3,
+    // borderBottomColor → inline set ediliyor
   },
   gText: {
     fontFamily: fonts.poppinsExtraBold,

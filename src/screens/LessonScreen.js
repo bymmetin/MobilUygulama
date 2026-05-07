@@ -232,7 +232,7 @@ export default function LessonScreen({ route, navigation }) {
                   return (
                     <TouchableOpacity
                       key={key}
-                      style={[styles.optionBtn, { backgroundColor: bg, shadowColor: shadow }]}
+                      style={[styles.optionBtn, { backgroundColor: bg, shadowColor: shadow, borderBottomColor: shadow }]}
                       onPress={() => handleSelectMC(key)}
                       disabled={answered}
                       activeOpacity={0.85}
@@ -276,7 +276,10 @@ export default function LessonScreen({ route, navigation }) {
           <TouchableOpacity
             style={[
               styles.continueBtn,
-              { backgroundColor: isInfoCard ? colors.btnGreen : colors.white },
+              {
+                backgroundColor: isInfoCard ? colors.btnGreen : colors.white,
+                borderBottomColor: isInfoCard ? colors.btnGreenDark : 'rgba(0,0,0,0.15)',
+              },
             ]}
             onPress={handleNext}
             activeOpacity={0.85}
@@ -351,15 +354,15 @@ const styles = StyleSheet.create({
   optionBtn: {
     width: (W - 44) / 2,
     minHeight: 76,
-    paddingVertical: 14,
+    paddingTop: 14,
+    paddingBottom: 10,
     paddingHorizontal: 12,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 6,
+    borderBottomWidth: 6,
+    // borderBottomColor → inline olarak set ediliyor (dinamik renk)
+    elevation: 3,
   },
   optionText: {
     fontSize: 15,
@@ -396,8 +399,11 @@ const styles = StyleSheet.create({
 
   continueBtn: {
     borderRadius: 16,
-    paddingVertical: 18,
+    paddingTop: 18,
+    paddingBottom: 14,
     alignItems: 'center',
+    borderBottomWidth: 5,
+    elevation: 3,
   },
   continueBtnText: {
     fontSize: 22,
