@@ -77,14 +77,13 @@ const styles = StyleSheet.create({
   startBtn: {
     backgroundColor: colors.primary,
     width: '100%',
-    paddingVertical: 20,
+    paddingTop: 20,
+    paddingBottom: 15,
     borderRadius: 50,
     alignItems: 'center',
-    shadowColor: colors.primaryDark,
-    shadowOffset: { width: 0, height: 7 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 7,
+    borderBottomWidth: 7,
+    borderBottomColor: colors.primaryDark,
+    elevation: 3,
     marginBottom: 22,
   },
   startBtnText: {
@@ -107,5 +106,8 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     fontSize: 14,
     color: colors.success,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.success,
+    paddingBottom: 1,
   },
 });

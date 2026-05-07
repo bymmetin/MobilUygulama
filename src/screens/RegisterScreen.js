@@ -136,6 +136,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
     marginBottom: 8,
+    borderBottomWidth: 5,
+    borderBottomColor: '#D0D0D0',
+    elevation: 3,
   },
   input: {
     fontFamily: fonts.regular,

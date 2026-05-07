@@ -46,6 +46,11 @@ function HomeTabs() {
           height: 72,
           paddingTop: 8,
           paddingBottom: 8,
+          elevation: 16,
+          shadowColor: '#3A1A4A',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 6,
         },
         tabBarIcon: ({ focused }) => (
           <TabIcon name={route.name} focused={focused} />
