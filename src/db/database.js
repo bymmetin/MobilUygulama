@@ -44,6 +44,7 @@ export const initDB = async () => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       lesson_id INTEGER NOT NULL,
       question_text TEXT NOT NULL,
+      question_type TEXT DEFAULT 'multiple_choice',
       option_a TEXT,
       option_b TEXT,
       option_c TEXT,
@@ -51,6 +52,7 @@ export const initDB = async () => {
       correct_answer TEXT NOT NULL,
       image_url TEXT,
       audio_url TEXT,
+      extra_data TEXT,
       FOREIGN KEY (lesson_id) REFERENCES lessons(id)
     );
 
@@ -71,6 +73,8 @@ export const initDB = async () => {
   // Mevcut DB'lere yeni kolonları ekle (hata fırlatırsa zaten var demektir)
   try { await db.execAsync('ALTER TABLE questions ADD COLUMN image_url TEXT'); } catch (_) {}
   try { await db.execAsync('ALTER TABLE questions ADD COLUMN audio_url TEXT'); } catch (_) {}
+  try { await db.execAsync("ALTER TABLE questions ADD COLUMN question_type TEXT DEFAULT 'multiple_choice'"); } catch (_) {}
+  try { await db.execAsync('ALTER TABLE questions ADD COLUMN extra_data TEXT'); } catch (_) {}
   try { await db.execAsync('ALTER TABLE user_progress ADD COLUMN correct_count INTEGER DEFAULT 0'); } catch (_) {}
   try { await db.execAsync('ALTER TABLE user_progress ADD COLUMN total_count INTEGER DEFAULT 0'); } catch (_) {}
   try { await db.execAsync('ALTER TABLE user_progress ADD COLUMN earned_xp INTEGER DEFAULT 0'); } catch (_) {}

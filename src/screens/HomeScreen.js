@@ -221,7 +221,6 @@ const styles = StyleSheet.create({
     borderRadius: COIN / 2,
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden',
   },
   // Açık coinler → arka plan yok, Para.png'nin kendisi daire
   coinPara: {
@@ -242,7 +241,8 @@ const styles = StyleSheet.create({
     shadowRadius: 0,
     elevation: 4,
   },
-  paraImg: { width: COIN, height: COIN, resizeMode: 'cover' },
+  // Para.png'ye kendi borderRadius'u — overflow:hidden olmadan da daire görünür
+  paraImg: { width: COIN, height: COIN, borderRadius: COIN / 2, resizeMode: 'cover' },
   paraGray: { opacity: 0.35 },
   resetBtn: {
     position: 'absolute',
