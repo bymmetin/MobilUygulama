@@ -63,9 +63,10 @@ export const getLessonsByTopic = async (topicId) => {
       .eq('topic_id', topicId)
       .order('order_num');
     if (error) throw error;
-    if (!data || data.length === 0) throw new Error('empty');
+    // Boş dizi geçerli — ünite henüz aşamasız olabilir
+    if (!data) return [];
     const db = await getDB();
-    await cacheLessons(db, data);
+    if (data.length > 0) await cacheLessons(db, data);
     return data;
   } catch (e) {
     console.warn('[Supabase] getLessonsByTopic hata, SQLite cache kullanılıyor:', e.message);
