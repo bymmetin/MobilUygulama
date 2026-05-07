@@ -4,7 +4,7 @@ import {
   Image, Dimensions, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getQuestionsByLesson } from '../services/dataService';
+import { getQuestionsByLesson, getRandomAnswerableQuestion } from '../services/dataService';
 import { saveProgress, addXP } from '../services/contentService';
 import { getCurrentUser } from '../services/authService';
 import QuestionMatching from '../components/QuestionMatching';
@@ -12,67 +12,86 @@ import QuestionFillBlank from '../components/QuestionFillBlank';
 import { colors } from '../config/theme';
 
 const { width: W } = Dimensions.get('window');
-const MAX_LIVES = 3;
+const MAX_LIVES     = 3;
 const XP_PER_CORRECT = 10;
 
+// Bilgi kartı mı? (şık yok → cevaplanamaz kart)
+const isInfoCard = (q) =>
+  q?.question_type === 'multiple_choice' && !q?.option_a;
+
 export default function LessonScreen({ route, navigation }) {
-  const { lesson } = route.params;
-  // Retry modu: yalnızca yanlış soruları çöz
-  const questionIds = route.params?.questionIds ?? null;   // null = tüm sorular
-  const isRetry    = route.params?.isRetry    ?? false;
+  const { lesson }    = route.params;
+  const prevLesson    = route.params?.prevLesson    ?? null;
+  const questionIds   = route.params?.questionIds   ?? null;
+  const isRetry       = route.params?.isRetry       ?? false;
   const originalTotal = route.params?.originalTotal ?? null;
 
-  const [questions, setQuestions] = useState([]);
-  const [index, setIndex] = useState(0);
-  const [correct, setCorrect] = useState(0);
-  const [lives, setLives] = useState(MAX_LIVES);
-  const [user, setUser] = useState(null);
+  const [questions,  setQuestions]  = useState([]);
+  const [index,      setIndex]      = useState(0);
+  const [correct,    setCorrect]    = useState(0);
+  const [lives,      setLives]      = useState(MAX_LIVES);
+  const [user,       setUser]       = useState(null);
+  const [answered,   setAnswered]   = useState(false);
+  const [lastCorrect,setLastCorrect]= useState(false);
+  const [selected,   setSelected]   = useState(null);
+  const [finishing,  setFinishing]  = useState(false);
 
-  // Cevap durumu
-  const [answered, setAnswered] = useState(false);
-  const [lastCorrect, setLastCorrect] = useState(false);
-
-  // Çoktan seçmeli için seçilen şık
-  const [selected, setSelected] = useState(null);
-
-  // Bitiş tetiklendi mi
-  const [finishing, setFinishing] = useState(false);
-
-  // Yanlış cevaplanan soru ID'leri (stale closure sorununu önlemek için ref)
   const wrongIdsRef = useRef([]);
 
   useEffect(() => {
-    getQuestionsByLesson(lesson.id).then(allQs => {
+    const load = async () => {
+      // Soruları ID sırasıyla çek (bilgi kartı → soru sırası korunuyor)
+      let allQs = await getQuestionsByLesson(lesson.id);
+
+      // Önceki aşamadan 1 rastgele soru ekle (retry modunda ekleme)
+      if (prevLesson && !isRetry) {
+        const prevQ = await getRandomAnswerableQuestion(prevLesson.id);
+        if (prevQ) {
+          allQs = [
+            ...allQs,
+            { ...prevQ, _isPrevStage: true, _prevTitle: prevLesson.title },
+          ];
+        }
+      }
+
       if (questionIds && questionIds.length > 0) {
-        // Retry: sadece daha önce yanlış yapılan soruları yükle
         setQuestions(allQs.filter(q => questionIds.includes(q.id)));
       } else {
         setQuestions(allQs);
       }
-    });
+    };
+    load();
     getCurrentUser().then(setUser);
   }, []);
 
-  const question = questions[index];
-  const isLast = index === questions.length - 1;
+  const question     = questions[index];
+  const isLast       = index === questions.length - 1;
   const questionType = question?.question_type ?? 'multiple_choice';
-  const isInfoCard = questionType === 'multiple_choice' && !question?.option_a;
+  const infoCard     = isInfoCard(question);
+  const isPrevStage  = !!question?._isPrevStage;
+
+  // Cevaplanabilir sorular (bilgi kartı ve önceki aşama sorusu hariç)
+  const answerableCount = questions.filter(
+    q => !isInfoCard(q) && !q._isPrevStage
+  ).length;
 
   const finishLesson = async (finalCorrect, explicitWrongIds) => {
     if (finishing) return;
     setFinishing(true);
 
-    // Retry modunda tüm sorular doğruysa → tam tamamlandı (100%)
-    const allRetryCorrect = isRetry && finalCorrect === questions.length;
-    const finalWrongIds   = explicitWrongIds ?? wrongIdsRef.current;
-    const wrongIdsToSave  = allRetryCorrect ? [] : finalWrongIds;
+    const allRetryCorrect  = isRetry && finalCorrect === (questionIds?.length ?? 0);
+    const finalWrongIds    = explicitWrongIds ?? wrongIdsRef.current;
+    const wrongIdsToSave   = allRetryCorrect ? [] : finalWrongIds;
 
-    // Skor hesabı
-    const displayTotal   = allRetryCorrect ? (originalTotal ?? questions.length) : questions.length;
+    // Skor — bilgi kartları ve önceki aşama sorusu sayılmaz
+    const scoreBase    = answerableCount || 1;
+    const displayTotal = allRetryCorrect
+      ? (originalTotal ?? scoreBase)
+      : scoreBase;
     const displayCorrect = allRetryCorrect ? displayTotal : finalCorrect;
     const score = allRetryCorrect
       ? 100
-      : (questions.length > 0 ? Math.round((finalCorrect / questions.length) * 100) : 0);
+      : Math.round((finalCorrect / scoreBase) * 100);
 
     const earnedXP = finalCorrect * XP_PER_CORRECT;
 
@@ -86,7 +105,7 @@ export default function LessonScreen({ route, navigation }) {
         await addXP(user.id, earnedXP);
       }
     } catch (e) {
-      console.warn('finishLesson DB hatası (navigation devam ediyor):', e.message);
+      console.warn('finishLesson DB hatası:', e.message);
     }
 
     navigation.replace('Result', {
@@ -94,20 +113,21 @@ export default function LessonScreen({ route, navigation }) {
     });
   };
 
-  // Cevap callback
   const handleAnswered = (isCorrect) => {
     if (answered) return;
     setAnswered(true);
     setLastCorrect(isCorrect);
+
+    // Önceki aşama sorusu: skoru / canı etkileme, sadece geri bildirim göster
+    if (isPrevStage) return;
+
     const newCorrect = isCorrect ? correct + 1 : correct;
     if (isCorrect) {
       setCorrect(newCorrect);
     } else {
-      // Yanlış cevap → soru ID'sini kaydet
       wrongIdsRef.current = [...wrongIdsRef.current, question.id];
       const newLives = Math.max(0, lives - 1);
       setLives(newLives);
-      // Can bitti → direkt kaybetme ekranına git
       if (newLives === 0) {
         const captured = wrongIdsRef.current;
         setTimeout(() => finishLesson(newCorrect, captured), 700);
@@ -115,7 +135,6 @@ export default function LessonScreen({ route, navigation }) {
     }
   };
 
-  // Sonraki / bitir
   const handleNext = () => {
     if (isLast) {
       finishLesson(correct);
@@ -146,9 +165,9 @@ export default function LessonScreen({ route, navigation }) {
     );
   }
 
-  const hasImage = !!question.image_url;
-  const showBottomPanel = answered || isInfoCard;
-  const panelBg = isInfoCard
+  const hasImage     = !!question.image_url;
+  const showBottomPanel = answered || infoCard;
+  const panelBg = infoCard
     ? colors.bottomPanel
     : lastCorrect ? '#00C853' : '#FF2020';
 
@@ -175,7 +194,6 @@ export default function LessonScreen({ route, navigation }) {
           </View>
         </View>
 
-        {/* Duolingo tarzı progress bar */}
         {questions.length > 0 && (
           <View style={styles.progressTrack}>
             <View
@@ -198,9 +216,17 @@ export default function LessonScreen({ route, navigation }) {
         contentContainerStyle={styles.contentInner}
         showsVerticalScrollIndicator={false}
       >
+        {/* Önceki aşama rozeti */}
+        {isPrevStage && (
+          <View style={styles.prevStageBadge}>
+            <Text style={styles.prevStageBadgeText}>
+              🔄  {question._prevTitle} tekrarı
+            </Text>
+          </View>
+        )}
+
         {questionType === 'multiple_choice' && (
           <>
-            {/* Resim sadece varsa */}
             {hasImage && (
               <Image
                 source={{ uri: question.image_url }}
@@ -211,23 +237,23 @@ export default function LessonScreen({ route, navigation }) {
 
             <Text style={[
               styles.questionText,
-              isInfoCard && styles.infoText,
-              !hasImage && !isInfoCard && styles.questionTextNoImage,
+              infoCard && styles.infoText,
+              !hasImage && !infoCard && styles.questionTextNoImage,
             ]}>
               {question.question_text}
             </Text>
 
-            {!isInfoCard && (
+            {!infoCard && (
               <View style={styles.optionsGrid}>
                 {OPTIONS.map(({ key, value }) => {
-                  const isSelected = selected === key;
+                  const isSelected   = selected === key;
                   const isCorrectOpt = question.correct_answer === key;
-                  let bg = colors.magentaBtn;
+                  let bg     = colors.magentaBtn;
                   let shadow = colors.magentaBtnShadow;
                   if (answered) {
-                    if (isCorrectOpt) { bg = '#00BB00'; shadow = '#007700'; }
-                    else if (isSelected) { bg = '#CC2020'; shadow = '#880000'; }
-                    else { bg = '#CC00AA'; shadow = '#880070'; }
+                    if (isCorrectOpt)       { bg = '#00BB00'; shadow = '#007700'; }
+                    else if (isSelected)    { bg = '#CC2020'; shadow = '#880000'; }
+                    else                    { bg = '#CC00AA'; shadow = '#880070'; }
                   }
                   return (
                     <TouchableOpacity
@@ -262,14 +288,16 @@ export default function LessonScreen({ route, navigation }) {
         )}
       </ScrollView>
 
-      {/* Alt panel — yalnızca cevap verildikten sonra (bilgi kartları hariç) */}
+      {/* Alt panel */}
       {showBottomPanel && (
         <SafeAreaView edges={['bottom']} style={[styles.bottomPanelWrap, { backgroundColor: panelBg }]}>
-          {answered && !isInfoCard && (
+          {answered && !infoCard && (
             <View style={styles.feedbackRow}>
               <Text style={styles.feedbackIcon}>{lastCorrect ? '✓' : '✗'}</Text>
               <Text style={styles.feedbackText}>
-                {lastCorrect ? 'Doğru!' : 'Yanlış'}
+                {lastCorrect
+                  ? (isPrevStage ? 'Harika, hatırladın!' : 'Doğru!')
+                  : (isPrevStage ? 'Unutmuşsun!' : 'Yanlış')}
               </Text>
             </View>
           )}
@@ -277,8 +305,8 @@ export default function LessonScreen({ route, navigation }) {
             style={[
               styles.continueBtn,
               {
-                backgroundColor: isInfoCard ? colors.btnGreen : colors.white,
-                borderBottomColor: isInfoCard ? colors.btnGreenDark : 'rgba(0,0,0,0.15)',
+                backgroundColor: infoCard ? colors.btnGreen : colors.white,
+                borderBottomColor: infoCard ? colors.btnGreenDark : 'rgba(0,0,0,0.15)',
               },
             ]}
             onPress={handleNext}
@@ -286,7 +314,7 @@ export default function LessonScreen({ route, navigation }) {
           >
             <Text style={[
               styles.continueBtnText,
-              { color: isInfoCard ? colors.white : panelBg },
+              { color: infoCard ? colors.white : panelBg },
             ]}>
               {isLast ? 'BİTİR' : 'DEVAM'}
             </Text>
@@ -331,6 +359,23 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   contentInner: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24 },
 
+  // Önceki aşama rozeti
+  prevStageBadge: {
+    alignSelf: 'center',
+    backgroundColor: '#EDE0FF',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#C8A8FF',
+  },
+  prevStageBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#7030A0',
+  },
+
   image: {
     width: '100%',
     height: W * 0.5,
@@ -343,7 +388,17 @@ const styles = StyleSheet.create({
     textAlign: 'center', marginBottom: 24, lineHeight: 28,
   },
   questionTextNoImage: { fontSize: 24, marginTop: 24, marginBottom: 32, lineHeight: 34 },
-  infoText: { fontSize: 32, lineHeight: 44, color: '#3A3040' },
+
+  // Bilgi kartı — font küçük ve okunabilir
+  infoText: {
+    fontSize: 17,
+    fontWeight: '600',
+    lineHeight: 26,
+    color: '#3A3040',
+    textAlign: 'left',
+    marginTop: 8,
+    marginBottom: 8,
+  },
 
   optionsGrid: {
     flexDirection: 'row',
@@ -361,7 +416,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderBottomWidth: 6,
-    // borderBottomColor → inline olarak set ediliyor (dinamik renk)
     elevation: 3,
   },
   optionText: {
@@ -385,17 +439,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  feedbackIcon: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.white,
-  },
-  feedbackText: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: colors.white,
-    letterSpacing: 1,
-  },
+  feedbackIcon: { fontSize: 28, fontWeight: 'bold', color: colors.white },
+  feedbackText: { fontSize: 22, fontWeight: '900', color: colors.white, letterSpacing: 1 },
 
   continueBtn: {
     borderRadius: 16,
@@ -405,11 +450,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 5,
     elevation: 3,
   },
-  continueBtnText: {
-    fontSize: 22,
-    fontWeight: '900',
-    letterSpacing: 3,
-  },
+  continueBtnText: { fontSize: 22, fontWeight: '900', letterSpacing: 3 },
 
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   emptyText: { fontSize: 16, color: '#6B7280', textAlign: 'center', marginBottom: 20 },

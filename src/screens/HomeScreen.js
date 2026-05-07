@@ -11,9 +11,10 @@ import MesaleSvg from '../../assets/mesale.svg';
 import KilitSvg from '../../assets/kilit.svg';
 
 const { width: W } = Dimensions.get('window');
-const COIN = 78;
-const STEP = 112;
-const ZIGZAG = [0.50, 0.30, 0.50, 0.70];
+const COIN    = 66;
+const STEP    = 96;
+const LABEL_W = COIN + 48;
+const ZIGZAG  = [0.50, 0.30, 0.50, 0.70];
 
 export default function HomeScreen({ navigation }) {
   const [topicsData, setTopicsData] = useState([]);
@@ -31,7 +32,6 @@ export default function HomeScreen({ navigation }) {
             lessons: await getLessonsByTopic(topic.id),
           }))
         );
-        // Aşaması olmayan üniteleri filtrele
         setTopicsData(data.filter(({ lessons }) => lessons.length > 0));
         if (u) {
           const progress = await getUserProgress(u.id);
@@ -52,13 +52,18 @@ export default function HomeScreen({ navigation }) {
     return (progressMap[prevId]?.score ?? 0) >= 50;
   };
 
-  const handleCoinPress = (lesson, unlocked) => {
+  const handleCoinPress = (lesson, unlocked, tIdx, lIdx) => {
     if (!unlocked) return;
+
+    // Önceki aşama → LessonScreen'e gönder (önceki ders sorusu için)
+    const prevLesson = lIdx > 0 ? topicsData[tIdx]?.lessons[lIdx - 1] : null;
+
     const p = progressMap[lesson.id];
 
     if (!p) {
-      navigation.navigate('Lesson', { lesson });
+      navigation.navigate('Lesson', { lesson, prevLesson });
     } else if (p.score === 100) {
+      // Tamamlandı → sonuç ekranı (review modunda)
       navigation.navigate('Result', {
         lesson,
         score: p.score,
@@ -73,15 +78,16 @@ export default function HomeScreen({ navigation }) {
       if (wrongIds.length > 0) {
         navigation.navigate('Lesson', {
           lesson,
+          prevLesson,
           questionIds: wrongIds,
           isRetry: true,
           originalTotal: p.total_count ?? 0,
         });
       } else {
-        navigation.navigate('Lesson', { lesson });
+        navigation.navigate('Lesson', { lesson, prevLesson });
       }
     } else {
-      navigation.navigate('Lesson', { lesson });
+      navigation.navigate('Lesson', { lesson, prevLesson });
     }
   };
 
@@ -105,7 +111,7 @@ export default function HomeScreen({ navigation }) {
               </View>
 
               {/* Aşama yolu — zigzag */}
-              <View style={{ height: pathHeight, position: 'relative' }}>
+              <View style={{ height: pathHeight, position: 'relative', marginTop: 20 }}>
                 {lessons.map((lesson, lIdx) => {
                   const unlocked    = isUnlocked(tIdx, lIdx);
                   const progress    = progressMap[lesson.id];
@@ -118,7 +124,7 @@ export default function HomeScreen({ navigation }) {
                     <React.Fragment key={lesson.id}>
                       <TouchableOpacity
                         style={[styles.coin, { left, top }]}
-                        onPress={() => handleCoinPress(lesson, unlocked)}
+                        onPress={() => handleCoinPress(lesson, unlocked, tIdx, lIdx)}
                         activeOpacity={unlocked ? 0.8 : 1}
                       >
                         {/* Coin */}
@@ -136,7 +142,7 @@ export default function HomeScreen({ navigation }) {
                         {/* Kilitli → kilit ikonu */}
                         {!unlocked && (
                           <View style={styles.lockOverlay}>
-                            <KilitSvg width={28} height={28} />
+                            <KilitSvg width={24} height={24} />
                           </View>
                         )}
 
@@ -148,9 +154,12 @@ export default function HomeScreen({ navigation }) {
                         )}
                       </TouchableOpacity>
 
-                      {/* Aşama etiketi */}
+                      {/* Aşama etiketi — coin merkezinin tam altında */}
                       <Text
-                        style={[styles.stageLabel, { left, top: top + COIN + 4 }]}
+                        style={[styles.stageLabel, {
+                          left: left - (LABEL_W - COIN) / 2,
+                          top: top + COIN + 4,
+                        }]}
                         numberOfLines={2}
                       >
                         {lesson.title}
@@ -273,9 +282,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: '#00CC44',
     borderWidth: 2,
     borderColor: '#fff',
@@ -284,15 +293,14 @@ const styles = StyleSheet.create({
   },
   tickText: {
     color: '#fff',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '900',
-    lineHeight: 14,
+    lineHeight: 13,
   },
 
-  // Aşama adı etiketi
   stageLabel: {
     position: 'absolute',
-    width: COIN + 16,
+    width: LABEL_W,
     fontSize: 10,
     fontWeight: '700',
     color: '#7A6080',
