@@ -9,7 +9,7 @@ export default function ResultScreen({ route, navigation }) {
   const passed = score >= 50;
 
   const goHome = () => navigation.navigate('HomeTabs');
-  const restart = () => navigation.replace('Lesson', { lesson });
+  const restart = () => navigation.replace('Lesson', { lesson, isRetry: true });
 
   if (passed) {
     return (
@@ -45,6 +45,7 @@ export default function ResultScreen({ route, navigation }) {
 
           {review ? (
             <>
+              <Text style={styles.retryNote}>Tekrar oynamada her doğru +5 XP verir</Text>
               <TouchableOpacity style={styles.winBtn} onPress={restart} activeOpacity={0.85}>
                 <Text style={styles.devamText}>TEKRARDAN BAŞLA</Text>
               </TouchableOpacity>
@@ -97,6 +98,7 @@ export default function ResultScreen({ route, navigation }) {
 
         {review ? (
           <>
+            <Text style={styles.retryNote}>Tekrar oynamada her doğru +5 XP verir</Text>
             <TouchableOpacity style={styles.loseBtn} onPress={restart} activeOpacity={0.85}>
               <Text style={styles.devamText}>TEKRARDAN BAŞLA</Text>
             </TouchableOpacity>
@@ -227,5 +229,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#7A6080',
     textDecorationLine: 'underline',
+  },
+  retryNote: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#9A9098',
+    marginBottom: 12,
+    textAlign: 'center',
   },
 });

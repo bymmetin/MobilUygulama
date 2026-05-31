@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   Image, Dimensions, ScrollView,
@@ -12,8 +12,9 @@ import QuestionFillBlank from '../components/QuestionFillBlank';
 import { colors } from '../config/theme';
 
 const { width: W } = Dimensions.get('window');
-const MAX_LIVES     = 3;
-const XP_PER_CORRECT = 10;
+const MAX_LIVES          = 3;
+const XP_PER_CORRECT     = 10;
+const XP_PER_CORRECT_RETRY = 5;
 
 // Bilgi kartı mı? (şık yok → cevaplanamaz kart)
 const isInfoCard = (q) =>
@@ -107,7 +108,8 @@ export default function LessonScreen({ route, navigation }) {
       ? 100
       : Math.round((finalCorrect / scoreBase) * 100);
 
-    const earnedXP = finalCorrect * XP_PER_CORRECT;
+    const xpRate   = isRetry ? XP_PER_CORRECT_RETRY : XP_PER_CORRECT;
+    const earnedXP = finalCorrect * xpRate;
 
     try {
       if (user) {
@@ -166,6 +168,23 @@ export default function LessonScreen({ route, navigation }) {
     handleAnswered(key === question.correct_answer);
   };
 
+  // Şıkları her soru için rastgele sırala — hooks erken return'den ÖNCE olmalı
+  const OPTIONS = useMemo(() => {
+    if (!question) return [];
+    const base = [
+      { key: 'A', value: question.option_a },
+      { key: 'B', value: question.option_b },
+      { key: 'C', value: question.option_c },
+      { key: 'D', value: question.option_d },
+    ].filter(o => o.value);
+    const arr = [...base];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }, [question?.id]);
+
   if (!question) {
     return (
       <SafeAreaView style={styles.safe}>
@@ -179,18 +198,11 @@ export default function LessonScreen({ route, navigation }) {
     );
   }
 
-  const hasImage     = !!question.image_url;
+  const hasImage        = !!question.image_url;
   const showBottomPanel = answered || infoCard;
   const panelBg = infoCard
     ? colors.bottomPanel
     : lastCorrect ? '#00C853' : '#FF2020';
-
-  const OPTIONS = [
-    { key: 'A', value: question.option_a },
-    { key: 'B', value: question.option_b },
-    { key: 'C', value: question.option_c },
-    { key: 'D', value: question.option_d },
-  ].filter(o => o.value);
 
   return (
     <View style={styles.safe}>
