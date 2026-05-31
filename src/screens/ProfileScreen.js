@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { getCurrentUser, logout } from '../services/authService';
 import { getUserProgress } from '../services/contentService';
+import { getDB } from '../db/database';
 import { colors } from '../config/theme';
 
 export default function ProfileScreen({ navigation }) {
@@ -10,11 +12,20 @@ export default function ProfileScreen({ navigation }) {
   const [completedCount, setCompletedCount] = useState(0);
   const [avgScore, setAvgScore] = useState(0);
 
-  useEffect(() => {
-    const load = async () => {
-      const u = await getCurrentUser();
-      setUser(u);
-      if (u) {
+  useFocusEffect(
+    useCallback(() => {
+      const load = async () => {
+        const u = await getCurrentUser();
+        if (!u) return;
+
+        // XP ve streak'i her zaman DB'den taze çek (AsyncStorage geride kalabilir)
+        const db = await getDB();
+        const fresh = await db.getFirstAsync(
+          'SELECT xp, streak FROM users WHERE id = ?', [u.id]
+        );
+        const updatedUser = { ...u, xp: fresh?.xp ?? u.xp, streak: fresh?.streak ?? u.streak };
+        setUser(updatedUser);
+
         const progress = await getUserProgress(u.id);
         const completed = progress.filter(p => p.completed);
         setCompletedCount(completed.length);
@@ -22,10 +33,10 @@ export default function ProfileScreen({ navigation }) {
           const total = completed.reduce((s, p) => s + p.score, 0);
           setAvgScore(Math.round(total / completed.length));
         }
-      }
-    };
-    load();
-  }, []);
+      };
+      load();
+    }, [])
+  );
 
   const initials = user?.username?.slice(0, 2).toUpperCase() ?? '??';
   const level = Math.floor((user?.xp ?? 0) / 100) + 1;

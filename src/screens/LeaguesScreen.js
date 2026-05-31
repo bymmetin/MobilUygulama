@@ -7,15 +7,15 @@ import { getDB } from '../db/database';
 import { colors, fonts } from '../config/theme';
 
 const FAKE_RIVALS = [
-  { id: 'fake_1', username: 'Aslan42', xp: 450 },
-  { id: 'fake_2', username: 'TarihAvcısı', xp: 380 },
-  { id: 'fake_3', username: 'Zeynep_M', xp: 320 },
-  { id: 'fake_4', username: 'KaanBey', xp: 270 },
-  { id: 'fake_5', username: 'Ayşe2026', xp: 210 },
-  { id: 'fake_6', username: 'Osmanlı99', xp: 180 },
-  { id: 'fake_7', username: 'MertK', xp: 140 },
-  { id: 'fake_8', username: 'Elif_T', xp: 90 },
-  { id: 'fake_9', username: 'YusufY', xp: 50 },
+  { id: 'fake_1', username: 'Ömer Özçelik',  xp: 450 },
+  { id: 'fake_2', username: 'Erdal Korkmaz',  xp: 380 },
+  { id: 'fake_3', username: 'Burak Yıldız',   xp: 320 },
+  { id: 'fake_4', username: 'Selin Kaya',     xp: 270 },
+  { id: 'fake_5', username: 'Mert Öztürk',    xp: 210 },
+  { id: 'fake_6', username: 'Ayşe Çelik',     xp: 180 },
+  { id: 'fake_7', username: 'Kaan Şahin',     xp: 140 },
+  { id: 'fake_8', username: 'Elif Yılmaz',    xp: 90  },
+  { id: 'fake_9', username: 'Tarık Demirci',  xp: 50  },
 ];
 
 const MEDALS = ['🥇', '🥈', '🥉'];

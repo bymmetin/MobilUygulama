@@ -2,54 +2,74 @@ import { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { colors, fonts } from '../config/theme';
 
+const WRONG_THRESHOLD = 2; // Bu kadar veya daha fazla yanlışta soru "yanlış" sayılır
+
 export default function QuestionMatching({ question, onAnswered }) {
   const pairs = useMemo(() => {
-    try { return JSON.parse(question.extra_data)?.pairs ?? []; }
-    catch { return []; }
+    try {
+      const parsed = JSON.parse(question.extra_data);
+      if (Array.isArray(parsed)) return parsed;
+      return parsed?.pairs ?? [];
+    } catch { return []; }
   }, [question.id]);
 
   const rightItems = useMemo(
-    () => [...pairs.map(p => p.right)].sort(() => Math.random() - 0.5),
+    () => pairs.map((p, i) => ({ value: p.right, origIdx: i }))
+               .sort(() => Math.random() - 0.5),
     [question.id]
   );
 
-  const [selectedLeft, setSelectedLeft] = useState(null);
-  const [matches, setMatches] = useState({});   // { leftItem: rightItem }
-  const [checked, setChecked] = useState(false);
+  const [selectedLeft,    setSelectedLeft]    = useState(null);
+  const [correctSet,      setCorrectSet]      = useState(new Set());
+  const [flashWrongRight, setFlashWrongRight] = useState(null);
+  const [flashWrongLeft,  setFlashWrongLeft]  = useState(null);
+  const [hintOrigIdx,     setHintOrigIdx]     = useState(null);
+  const [wrongCount,      setWrongCount]      = useState(0);
+  const [wrongPairs,      setWrongPairs]      = useState([]); // [{left, wrongVal, correctVal}]
+  const [done,            setDone]            = useState(false);
 
-  const tapLeft = (item) => {
-    if (checked) return;
-    setSelectedLeft(prev => (prev === item ? null : item));
+  const isFlashing = flashWrongRight !== null;
+
+  const tapLeft = (left) => {
+    if (done || isFlashing) return;
+    setSelectedLeft(prev => (prev === left ? null : left));
   };
 
-  const tapRight = (item) => {
-    if (checked || !selectedLeft) return;
-    // Daha önce bu sağ kutuya eşleşme yapıldıysa kaldır
-    const updated = Object.fromEntries(
-      Object.entries(matches).filter(([, v]) => v !== item)
-    );
-    updated[selectedLeft] = item;
-    setMatches(updated);
-    setSelectedLeft(null);
-  };
+  const tapRight = (origIdx) => {
+    if (done || !selectedLeft || correctSet.has(origIdx) || isFlashing) return;
 
-  const allMatched = pairs.every(p => matches[p.left]);
+    const isCorrect = pairs[origIdx].left === selectedLeft;
 
-  const handleCheck = () => {
-    setChecked(true);
-    const correct = pairs.every(p => matches[p.left] === p.right);
-    onAnswered(correct);
-  };
+    if (isCorrect) {
+      const next = new Set(correctSet);
+      next.add(origIdx);
+      setCorrectSet(next);
+      setSelectedLeft(null);
 
-  const getStatus = (pair) => {
-    if (!checked) return null;
-    return matches[pair.left] === pair.right ? 'correct' : 'wrong';
-  };
+      if (next.size === pairs.length) {
+        setDone(true);
+        onAnswered(wrongCount < WRONG_THRESHOLD);
+      }
+    } else {
+      // Yanlış eşleşme
+      const correctIdx  = pairs.findIndex(p => p.left === selectedLeft);
+      const wrongVal    = pairs[origIdx].right;
+      const correctVal  = pairs[correctIdx]?.right ?? '?';
 
-  const getRightStatus = (item) => {
-    if (!checked) return null;
-    const pair = pairs.find(p => matches[p.left] === item);
-    return pair ? getStatus(pair) : null;
+      setFlashWrongRight(origIdx);
+      setFlashWrongLeft(selectedLeft);
+      setHintOrigIdx(correctIdx);
+      const newWrongCount = wrongCount + 1;
+      setWrongCount(newWrongCount);
+      setWrongPairs(prev => [...prev, { left: selectedLeft, wrongVal, correctVal }]);
+
+      setTimeout(() => {
+        setFlashWrongRight(null);
+        setFlashWrongLeft(null);
+        setHintOrigIdx(null);
+        setSelectedLeft(null);
+      }, 1100);
+    }
   };
 
   return (
@@ -57,22 +77,22 @@ export default function QuestionMatching({ question, onAnswered }) {
       <View style={s.grid}>
         {/* Sol kolon */}
         <View style={s.col}>
-          {pairs.map(pair => {
-            const status = getStatus(pair);
-            const isSelected = selectedLeft === pair.left;
-            const isMatched = !!matches[pair.left];
+          {pairs.map((pair, pairIdx) => {
+            const isMatched    = correctSet.has(pairIdx);
+            const isSelected   = selectedLeft === pair.left;
+            const isWrongFlash = flashWrongLeft === pair.left;
             return (
               <TouchableOpacity
                 key={pair.left}
                 style={[
                   s.chip,
-                  isSelected && s.chipSelected,
-                  isMatched && !checked && s.chipMatched,
-                  status === 'correct' && s.chipCorrect,
-                  status === 'wrong' && s.chipWrong,
+                  isSelected   && s.chipSelected,
+                  isMatched    && s.chipCorrect,
+                  isWrongFlash && s.chipWrong,
                 ]}
                 onPress={() => tapLeft(pair.left)}
-                disabled={checked}
+                disabled={done || isMatched}
+                activeOpacity={0.75}
               >
                 <Text style={s.chipText}>{pair.left}</Text>
               </TouchableOpacity>
@@ -82,34 +102,49 @@ export default function QuestionMatching({ question, onAnswered }) {
 
         {/* Sağ kolon */}
         <View style={s.col}>
-          {rightItems.map(item => {
-            const isUsed = Object.values(matches).includes(item);
-            const status = getRightStatus(item);
+          {rightItems.map(({ value, origIdx }) => {
+            const isMatched    = correctSet.has(origIdx);
+            const isWrongFlash = flashWrongRight === origIdx;
+            const isHint       = hintOrigIdx === origIdx;
+            const isHighlight  = !isMatched && !isWrongFlash && !isHint && !!selectedLeft;
             return (
               <TouchableOpacity
-                key={item}
+                key={`right-${origIdx}`}
                 style={[
                   s.chip,
                   s.chipRight,
-                  isUsed && !checked && s.chipMatched,
-                  !isUsed && selectedLeft && s.chipHighlight,
-                  status === 'correct' && s.chipCorrect,
-                  status === 'wrong' && s.chipWrong,
+                  isHighlight  && s.chipHighlight,
+                  isMatched    && s.chipCorrect,
+                  isWrongFlash && s.chipWrong,
+                  isHint       && s.chipHint,
                 ]}
-                onPress={() => tapRight(item)}
-                disabled={checked || isUsed}
+                onPress={() => tapRight(origIdx)}
+                disabled={done || isMatched || isFlashing}
+                activeOpacity={0.75}
               >
-                <Text style={s.chipText}>{item}</Text>
+                <Text style={s.chipText}>{value}</Text>
+                {isHint && <Text style={s.hintLabel}>✓ Doğru cevap</Text>}
               </TouchableOpacity>
             );
           })}
         </View>
       </View>
 
-      {allMatched && !checked && (
-        <TouchableOpacity style={s.checkBtn} onPress={handleCheck}>
-          <Text style={s.checkBtnText}>Kontrol Et</Text>
-        </TouchableOpacity>
+      {/* Yanlış özeti — soru bitti ve en az 1 yanlış varsa göster */}
+      {done && wrongPairs.length > 0 && (
+        <View style={s.wrongSummary}>
+          <Text style={s.wrongSummaryTitle}>Yanlış eşleştirdiklerin:</Text>
+          {wrongPairs.map((wp, i) => (
+            <Text key={i} style={s.wrongSummaryRow}>
+              <Text style={s.boldText}>{wp.left}</Text>
+              {' → '}
+              <Text style={s.wrongText}>{wp.wrongVal}</Text>
+              {'  değil  '}
+              <Text style={s.correctText}>{wp.correctVal}</Text>
+              {' doğru'}
+            </Text>
+          ))}
+        </View>
       )}
     </View>
   );
@@ -117,8 +152,9 @@ export default function QuestionMatching({ question, onAnswered }) {
 
 const s = StyleSheet.create({
   container: { flex: 1 },
-  grid: { flexDirection: 'row', gap: 10 },
-  col: { flex: 1, gap: 10 },
+  grid:      { flexDirection: 'row', gap: 10 },
+  col:       { flex: 1, gap: 10 },
+
   chip: {
     borderWidth: 2,
     borderColor: '#E5E7EB',
@@ -129,34 +165,48 @@ const s = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
   },
-  chipRight: { backgroundColor: '#F9FAFB' },
-  chipSelected: { borderColor: colors.primary, backgroundColor: '#EEF2FF' },
-  chipHighlight: { borderColor: '#A5B4FC' },
-  chipMatched: { borderColor: '#6366F1', backgroundColor: '#EEF2FF' },
-  chipCorrect: { borderColor: '#10B981', backgroundColor: '#D1FAE5' },
-  chipWrong: { borderColor: '#EF4444', backgroundColor: '#FEE2E2' },
+  chipRight:     { backgroundColor: '#F9FAFB' },
+  chipSelected:  { borderColor: colors.primary, backgroundColor: '#EEF2FF' },
+  chipHighlight: { borderColor: '#A5B4FC',       backgroundColor: '#F5F3FF' },
+  chipCorrect:   { borderColor: '#10B981',       backgroundColor: '#D1FAE5' },
+  chipWrong:     { borderColor: '#EF4444',       backgroundColor: '#FEE2E2' },
+  chipHint:      { borderColor: '#F59E0B',       backgroundColor: '#FEF3C7', borderWidth: 2.5 },
+
   chipText: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
     color: '#111827',
     textAlign: 'center',
   },
-  checkBtn: {
-    marginTop: 20,
-    backgroundColor: colors.primary,
-    borderRadius: 50,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: colors.primaryDark,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 4,
+  hintLabel: {
+    marginTop: 4,
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#B45309',
+    textAlign: 'center',
   },
-  checkBtnText: {
-    fontFamily: fonts.poppinsBold,
-    color: '#fff',
-    fontSize: 15,
-    letterSpacing: 1,
+
+  wrongSummary: {
+    marginTop: 16,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+    padding: 14,
+    borderLeftWidth: 4,
+    borderLeftColor: '#EF4444',
+    gap: 6,
   },
+  wrongSummaryTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#991B1B',
+    marginBottom: 4,
+  },
+  wrongSummaryRow: {
+    fontSize: 13,
+    color: '#374151',
+    lineHeight: 20,
+  },
+  boldText:    { fontWeight: '700' },
+  wrongText:   { color: '#EF4444', fontWeight: '700' },
+  correctText: { color: '#10B981', fontWeight: '700' },
 });

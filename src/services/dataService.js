@@ -29,7 +29,8 @@ const cacheQuestions = async (db, questions) => {
          correct_answer, image_url, audio_url, extra_data)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [q.id, q.lesson_id, q.question_text, q.question_type ?? 'multiple_choice',
-       q.option_a, q.option_b, q.option_c, q.option_d, q.correct_answer,
+       q.option_a ?? null, q.option_b ?? null, q.option_c ?? null, q.option_d ?? null,
+       q.correct_answer ?? '',   // bilgi kartlarında correct_answer boş olabilir
        q.image_url ?? null, q.audio_url ?? null, q.extra_data ?? null]
     );
   }

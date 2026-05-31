@@ -70,10 +70,19 @@ export default function LessonScreen({ route, navigation }) {
         }
       }
 
-      const filtered = questionIds && questionIds.length > 0
-        ? allQs.filter(q => questionIds.includes(q.id))
-        : allQs;
-      setQuestions(interleaveInfoAndQuiz(filtered));
+      if (questionIds && questionIds.length > 0) {
+        // Retry: yanlış quiz soruları + onların eşlendiği bilgi kartları
+        const rawInfos   = allQs.filter(q => isInfoCard(q) && !q._isPrevStage);
+        const rawQuizzes = allQs.filter(q => !isInfoCard(q) && !q._isPrevStage);
+        const retryQuizzes = rawQuizzes.filter(q => questionIds.includes(q.id));
+        // Her yanlış sorunun sıra indeksini bul, aynı indeksteki bilgi kartını al
+        const retryInfos = retryQuizzes
+          .map(q => rawInfos[rawQuizzes.indexOf(q)])
+          .filter(Boolean);
+        setQuestions(interleaveInfoAndQuiz([...retryInfos, ...retryQuizzes]));
+      } else {
+        setQuestions(interleaveInfoAndQuiz(allQs));
+      }
     };
     load();
     getCurrentUser().then(setUser);
@@ -94,7 +103,11 @@ export default function LessonScreen({ route, navigation }) {
     if (finishing) return;
     setFinishing(true);
 
-    const allRetryCorrect  = isRetry && finalCorrect === (questionIds?.length ?? 0);
+    // allRetryCorrect: sadece belirli yanlış soruları tekrar modunda (questionIds varsa) hepsini doğru yaptıysa
+    const allRetryCorrect = isRetry
+      && Array.isArray(questionIds)
+      && questionIds.length > 0
+      && finalCorrect === questionIds.length;
     const finalWrongIds    = explicitWrongIds ?? wrongIdsRef.current;
     const wrongIdsToSave   = allRetryCorrect ? [] : finalWrongIds;
 
