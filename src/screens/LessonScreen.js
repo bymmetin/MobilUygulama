@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getQuestionsByLesson, getRandomAnswerableQuestion } from '../services/dataService';
-import { saveProgress, addXP } from '../services/contentService';
+import { saveProgress, addXP, updateStreak } from '../services/contentService';
 import { getCurrentUser } from '../services/authService';
 import QuestionMatching from '../components/QuestionMatching';
 import QuestionFillBlank from '../components/QuestionFillBlank';
@@ -133,6 +133,7 @@ export default function LessonScreen({ route, navigation }) {
           wrongIdsToSave
         );
         await addXP(user.id, earnedXP);
+        await updateStreak(user.id);
       }
     } catch (e) {
       console.warn('finishLesson DB hatası:', e.message);
