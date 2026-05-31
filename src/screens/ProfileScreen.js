@@ -5,7 +5,7 @@ import { getCurrentUser, logout } from '../services/authService';
 import { getUserProgress } from '../services/contentService';
 import { colors } from '../config/theme';
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }) {
   const [user, setUser] = useState(null);
   const [completedCount, setCompletedCount] = useState(0);
   const [avgScore, setAvgScore] = useState(0);
@@ -33,6 +33,17 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      {/* Ayarlar butonu */}
+      <View style={styles.topBar}>
+        <TouchableOpacity
+          style={styles.settingsBtn}
+          onPress={() => navigation.navigate('Settings')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.settingsIcon}>⚙</Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView contentContainerStyle={styles.scroll}>
 
         {/* Üst satır: avatar + bilgiler başlığı */}
@@ -108,7 +119,19 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: 20, paddingTop: 24, paddingBottom: 40 },
+  topBar: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, paddingTop: 10 },
+  settingsBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.cardBg,
+    borderBottomWidth: 4,
+    borderBottomColor: '#A098A8',
+  },
+  settingsIcon: { fontSize: 22, color: '#5A5060' },
+  scroll: { padding: 20, paddingTop: 8, paddingBottom: 40 },
 
   topRow: {
     flexDirection: 'row',
