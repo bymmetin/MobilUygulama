@@ -167,11 +167,12 @@ const makeStyles = (c) => StyleSheet.create({
     minHeight: 64,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: c.white,
+    // Her iki temada da beyaz/açık zemin — karanlık arka planda görünür
+    backgroundColor: '#FFFFFF',
   },
-  chipRight:     { backgroundColor: c.inputBg },
-  chipSelected:  { borderColor: c.primary, backgroundColor: c.inputBg },
-  chipHighlight: { borderColor: '#A5B4FC',       backgroundColor: '#F5F3FF' },
+  chipRight:     { backgroundColor: '#F3F0FF' },   // hafif mor tint (sağ/sol ayrımı)
+  chipSelected:  { borderColor: c.primary, backgroundColor: '#EEE8FF' },
+  chipHighlight: { borderColor: '#A5B4FC',  backgroundColor: '#F5F3FF' },
   chipCorrect:   { borderColor: '#10B981', backgroundColor: c.correct },
   chipWrong:     { borderColor: '#EF4444', backgroundColor: c.wrong },
   chipHint:      { borderColor: '#F59E0B',       backgroundColor: '#FEF3C7', borderWidth: 2.5 },
