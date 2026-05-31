@@ -171,7 +171,7 @@ const makeStyles = (c) => StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   chipRight:     { backgroundColor: '#F3F0FF' },   // hafif mor tint (sağ/sol ayrımı)
-  chipSelected:  { borderColor: c.primary, backgroundColor: '#EEE8FF' },
+  chipSelected:  { borderColor: c.primary, borderWidth: 3, backgroundColor: '#C4B0FF' },
   chipHighlight: { borderColor: '#A5B4FC',  backgroundColor: '#F5F3FF' },
   chipCorrect:   { borderColor: '#10B981', backgroundColor: c.correct },
   chipWrong:     { borderColor: '#EF4444', backgroundColor: c.wrong },
