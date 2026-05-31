@@ -5,7 +5,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { getTopics, getLessonsByTopic } from '../services/dataService';
 import { getUserProgress } from '../services/contentService';
 import { getCurrentUser } from '../services/authService';
-import { colors, fonts } from '../config/theme';
+import { fonts } from '../config/theme';
+import { useTheme } from '../context/ThemeContext';
 
 import MesaleSvg from '../../assets/mesale.svg';
 import KilitSvg from '../../assets/kilit.svg';
@@ -17,6 +18,7 @@ const LABEL_W = COIN + 48;
 const ZIGZAG  = [0.50, 0.30, 0.50, 0.70];
 
 export default function HomeScreen({ navigation }) {
+  const { colors } = useTheme();
   const [topicsData, setTopicsData] = useState([]);
   const [progressMap, setProgressMap] = useState({});
   const [user, setUser] = useState(null);
@@ -90,6 +92,8 @@ export default function HomeScreen({ navigation }) {
       navigation.navigate('Lesson', { lesson, prevLesson });
     }
   };
+
+  const styles = makeStyles(colors);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -182,11 +186,11 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+const makeStyles = (c) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
 
   topBar: {
-    backgroundColor: colors.magenta,
+    backgroundColor: c.magenta,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -194,14 +198,14 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     gap: 8,
     borderBottomWidth: 5,
-    borderBottomColor: colors.magentaDark,
+    borderBottomColor: c.magentaDark,
     elevation: 8,
-    shadowColor: colors.magentaDark,
+    shadowColor: c.magentaDark,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
     shadowRadius: 0,
   },
-  streakText: { fontSize: 20, fontWeight: '900', color: colors.white },
+  streakText: { fontSize: 20, fontWeight: '900', color: c.white },
 
   scroll: { paddingBottom: 60 },
 
@@ -210,7 +214,7 @@ const styles = StyleSheet.create({
   },
 
   unitBanner: {
-    backgroundColor: colors.magenta,
+    backgroundColor: c.magenta,
     marginHorizontal: 16,
     marginTop: 20,
     marginBottom: 4,
@@ -219,9 +223,9 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 10,
     borderBottomWidth: 6,
-    borderBottomColor: colors.magentaDark,
+    borderBottomColor: c.magentaDark,
     elevation: 5,
-    shadowColor: colors.magentaDark,
+    shadowColor: c.magentaDark,
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -236,7 +240,7 @@ const styles = StyleSheet.create({
   unitTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: colors.white,
+    color: c.white,
     marginTop: 2,
   },
 

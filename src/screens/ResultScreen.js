@@ -1,15 +1,19 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, fonts } from '../config/theme';
+import { fonts } from '../config/theme';
+import { useTheme } from '../context/ThemeContext';
 import TacSvg from '../../assets/tac.svg';
 import KurukafaSvg from '../../assets/kurukafa.svg';
 
 export default function ResultScreen({ route, navigation }) {
+  const { colors } = useTheme();
   const { lesson, score, correct, total, earnedXP, review } = route.params;
   const passed = score >= 50;
 
   const goHome = () => navigation.navigate('HomeTabs');
   const restart = () => navigation.replace('Lesson', { lesson, isRetry: true });
+
+  const styles = makeStyles(colors);
 
   if (passed) {
     return (
@@ -117,8 +121,8 @@ export default function ResultScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+const makeStyles = (c) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
   container: {
     flex: 1,
     alignItems: 'center',
@@ -191,14 +195,14 @@ const styles = StyleSheet.create({
   spacer: { flex: 1 },
 
   winBtn: {
-    backgroundColor: colors.btnGreen,
+    backgroundColor: c.btnGreen,
     width: '100%',
     paddingTop: 22,
     paddingBottom: 17,
     borderRadius: 20,
     alignItems: 'center',
     borderBottomWidth: 7,
-    borderBottomColor: colors.btnGreenDark,
+    borderBottomColor: c.btnGreenDark,
     elevation: 3,
   },
   loseBtn: {
@@ -215,7 +219,7 @@ const styles = StyleSheet.create({
   devamText: {
     fontSize: 24,
     fontWeight: '900',
-    color: colors.white,
+    color: c.white,
     letterSpacing: 2,
     fontFamily: fonts.poppinsExtraBold,
   },

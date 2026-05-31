@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors, fonts } from '../config/theme';
+import { fonts } from '../config/theme';
+import { useTheme } from '../context/ThemeContext';
 
 const WRONG_THRESHOLD = 2; // Bu kadar veya daha fazla yanlışta soru "yanlış" sayılır
 
 export default function QuestionMatching({ question, onAnswered }) {
+  const { colors } = useTheme();
   const pairs = useMemo(() => {
     try {
       const parsed = JSON.parse(question.extra_data);
@@ -71,6 +73,8 @@ export default function QuestionMatching({ question, onAnswered }) {
       }, 1100);
     }
   };
+
+  const s = makeStyles(colors);
 
   return (
     <View style={s.container}>
@@ -150,23 +154,23 @@ export default function QuestionMatching({ question, onAnswered }) {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (c) => StyleSheet.create({
   container: { flex: 1 },
   grid:      { flexDirection: 'row', gap: 10 },
   col:       { flex: 1, gap: 10 },
 
   chip: {
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: c.inputBorder,
     borderRadius: 12,
     padding: 12,
     minHeight: 64,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: c.white,
   },
-  chipRight:     { backgroundColor: '#F9FAFB' },
-  chipSelected:  { borderColor: colors.primary, backgroundColor: '#EEF2FF' },
+  chipRight:     { backgroundColor: c.inputBg },
+  chipSelected:  { borderColor: c.primary, backgroundColor: c.inputBg },
   chipHighlight: { borderColor: '#A5B4FC',       backgroundColor: '#F5F3FF' },
   chipCorrect:   { borderColor: '#10B981',       backgroundColor: '#D1FAE5' },
   chipWrong:     { borderColor: '#EF4444',       backgroundColor: '#FEE2E2' },
@@ -203,7 +207,7 @@ const s = StyleSheet.create({
   },
   wrongSummaryRow: {
     fontSize: 13,
-    color: '#374151',
+    color: c.text,
     lineHeight: 20,
   },
   boldText:    { fontWeight: '700' },

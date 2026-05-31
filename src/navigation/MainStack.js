@@ -8,7 +8,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import LessonScreen from '../screens/LessonScreen';
 import ResultScreen from '../screens/ResultScreen';
 import SettingsScreen from '../screens/SettingsScreen';
-import { colors } from '../config/theme';
+import { useTheme } from '../context/ThemeContext';
 
 import HomeIcon from '../../assets/tab-home.svg';
 import LeaguesIcon from '../../assets/tab-leagues.svg';
@@ -36,6 +36,7 @@ function TabIcon({ name, focused }) {
 }
 
 function HomeTabs() {
+  const { colors } = useTheme();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({

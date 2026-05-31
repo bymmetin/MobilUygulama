@@ -5,9 +5,10 @@ import { useFocusEffect } from '@react-navigation/native';
 import { getCurrentUser, logout } from '../services/authService';
 import { getUserProgress } from '../services/contentService';
 import { getDB } from '../db/database';
-import { colors } from '../config/theme';
+import { useTheme } from '../context/ThemeContext';
 
 export default function ProfileScreen({ navigation }) {
+  const { colors } = useTheme();
   const [user, setUser] = useState(null);
   const [completedCount, setCompletedCount] = useState(0);
   const [avgScore, setAvgScore] = useState(0);
@@ -41,6 +42,8 @@ export default function ProfileScreen({ navigation }) {
   const initials = user?.username?.slice(0, 2).toUpperCase() ?? '??';
   const level = Math.floor((user?.xp ?? 0) / 100) + 1;
   const xpInLevel = (user?.xp ?? 0) % 100;
+
+  const styles = makeStyles(colors);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -128,8 +131,8 @@ export default function ProfileScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+const makeStyles = (c) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
   topBar: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, paddingTop: 10 },
   settingsBtn: {
     width: 44,
@@ -137,9 +140,14 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.cardBg,
-    borderBottomWidth: 4,
-    borderBottomColor: '#A098A8',
+    backgroundColor: c.cardBg,
+    // iOS gölge
+    shadowColor: '#3A2A4A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.22,
+    shadowRadius: 4,
+    // Android gölge
+    elevation: 5,
   },
   settingsIcon: { fontSize: 22, color: '#5A5060' },
   scroll: { padding: 20, paddingTop: 8, paddingBottom: 40 },
@@ -155,7 +163,7 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: colors.cardBg,
+    backgroundColor: c.cardBg,
     justifyContent: 'center',
     alignItems: 'center',
     flexShrink: 0,
@@ -168,7 +176,7 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: 32, fontWeight: '900', color: '#5A4868' },
   infoBox: {
     flex: 1,
-    backgroundColor: colors.cardBg,
+    backgroundColor: c.cardBg,
     borderRadius: 20,
     paddingHorizontal: 18,
     paddingTop: 14,
@@ -193,7 +201,7 @@ const styles = StyleSheet.create({
   infoBoxEmail: { fontSize: 12, color: '#9A9098', marginTop: 2 },
 
   card: {
-    backgroundColor: colors.cardBg,
+    backgroundColor: c.cardBg,
     borderRadius: 20,
     paddingHorizontal: 22,
     paddingTop: 22,
@@ -240,7 +248,7 @@ const styles = StyleSheet.create({
   },
   xpFill: {
     height: 8,
-    backgroundColor: colors.magenta,
+    backgroundColor: c.magenta,
     borderRadius: 4,
   },
 

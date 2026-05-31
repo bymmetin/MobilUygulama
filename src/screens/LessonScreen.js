@@ -9,7 +9,7 @@ import { saveProgress, addXP } from '../services/contentService';
 import { getCurrentUser } from '../services/authService';
 import QuestionMatching from '../components/QuestionMatching';
 import QuestionFillBlank from '../components/QuestionFillBlank';
-import { colors } from '../config/theme';
+import { useTheme } from '../context/ThemeContext';
 
 const { width: W } = Dimensions.get('window');
 const MAX_LIVES          = 3;
@@ -36,6 +36,7 @@ const interleaveInfoAndQuiz = (arr) => {
 };
 
 export default function LessonScreen({ route, navigation }) {
+  const { colors } = useTheme();
   const { lesson }    = route.params;
   const prevLesson    = route.params?.prevLesson    ?? null;
   const questionIds   = route.params?.questionIds   ?? null;
@@ -197,6 +198,8 @@ export default function LessonScreen({ route, navigation }) {
     }
     return arr;
   }, [question?.id]);
+
+  const styles = makeStyles(colors);
 
   if (!question) {
     return (
@@ -364,8 +367,8 @@ export default function LessonScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+const makeStyles = (c) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
 
   progressTrack: {
     height: 10,
@@ -377,7 +380,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: 10,
-    backgroundColor: colors.btnGreen,
+    backgroundColor: c.btnGreen,
     borderRadius: 5,
     minWidth: 10,
   },
@@ -460,7 +463,7 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 15,
     fontWeight: '800',
-    color: colors.white,
+    color: c.white,
     textAlign: 'center',
     lineHeight: 19,
   },
@@ -478,8 +481,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  feedbackIcon: { fontSize: 28, fontWeight: 'bold', color: colors.white },
-  feedbackText: { fontSize: 22, fontWeight: '900', color: colors.white, letterSpacing: 1 },
+  feedbackIcon: { fontSize: 28, fontWeight: 'bold', color: c.white },
+  feedbackText: { fontSize: 22, fontWeight: '900', color: c.white, letterSpacing: 1 },
 
   continueBtn: {
     borderRadius: 16,
@@ -493,5 +496,5 @@ const styles = StyleSheet.create({
 
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   emptyText: { fontSize: 16, color: '#6B7280', textAlign: 'center', marginBottom: 20 },
-  backLink: { fontSize: 16, color: colors.primary, fontWeight: '600' },
+  backLink: { fontSize: 16, color: c.primary, fontWeight: '600' },
 });

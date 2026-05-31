@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { getCurrentUser } from '../services/authService';
 import { getDB } from '../db/database';
-import { colors, fonts } from '../config/theme';
+import { fonts } from '../config/theme';
+import { useTheme } from '../context/ThemeContext';
 
 const FAKE_RIVALS = [
   { id: 'fake_1', username: 'Ömer Özçelik',  xp: 450 },
@@ -21,6 +22,7 @@ const FAKE_RIVALS = [
 const MEDALS = ['🥇', '🥈', '🥉'];
 
 export default function LeaguesScreen() {
+  const { colors } = useTheme();
   const [user, setUser] = useState(null);
   const [board, setBoard] = useState([]);
 
@@ -66,6 +68,8 @@ export default function LeaguesScreen() {
     );
   };
 
+  const styles = makeStyles(colors);
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
@@ -84,21 +88,21 @@ export default function LeaguesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+const makeStyles = (c) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
 
   header: {
-    backgroundColor: colors.magenta,
+    backgroundColor: c.magenta,
     paddingVertical: 18,
     paddingHorizontal: 20,
     alignItems: 'center',
     borderBottomWidth: 6,
-    borderBottomColor: colors.magentaDark,
+    borderBottomColor: c.magentaDark,
   },
   headerText: {
     fontSize: 24,
     fontWeight: '900',
-    color: colors.white,
+    color: c.white,
     letterSpacing: 2,
     fontFamily: fonts.poppinsExtraBold,
   },
@@ -114,7 +118,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.cardBg,
+    backgroundColor: c.cardBg,
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -123,8 +127,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#A098A8',
   },
   rowMe: {
-    backgroundColor: colors.magenta,
-    borderBottomColor: colors.magentaDark,
+    backgroundColor: c.magenta,
+    borderBottomColor: c.magentaDark,
   },
 
   rankBox: { width: 36, alignItems: 'center', justifyContent: 'center' },
@@ -135,16 +139,16 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: { fontSize: 18, fontWeight: '900', color: '#7A7080' },
 
   username: { flex: 1, fontSize: 16, fontWeight: '800', color: '#3A3040' },
-  usernameMe: { color: colors.white },
+  usernameMe: { color: c.white },
 
-  xp: { fontSize: 15, fontWeight: '900', color: colors.xp },
+  xp: { fontSize: 15, fontWeight: '900', color: c.xp },
   xpMe: { color: 'rgba(255,255,255,0.9)' },
 
   sep: { height: 8 },

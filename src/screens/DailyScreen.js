@@ -5,7 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { getCurrentUser } from '../services/authService';
 import { addXP } from '../services/contentService';
-import { colors, fonts } from '../config/theme';
+import { fonts } from '../config/theme';
+import { useTheme } from '../context/ThemeContext';
 
 const DAILY_BONUS = 10;
 
@@ -54,6 +55,7 @@ function getTodayFact() {
 }
 
 export default function DailyScreen() {
+  const { colors } = useTheme();
   const [user, setUser] = useState(null);
   const [claimed, setClaimed] = useState(false);
   const fact = getTodayFact();
@@ -84,6 +86,8 @@ export default function DailyScreen() {
       Alert.alert('Hata', 'XP eklenirken bir sorun oluştu.');
     }
   };
+
+  const styles = makeStyles(colors);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -119,8 +123,8 @@ export default function DailyScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+const makeStyles = (c) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
   scroll: { padding: 20, paddingTop: 24, paddingBottom: 40 },
 
   header: {
@@ -134,7 +138,7 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: colors.cardBg,
+    backgroundColor: c.cardBg,
     borderRadius: 20,
     padding: 24,
     marginBottom: 24,
@@ -148,14 +152,14 @@ const styles = StyleSheet.create({
   },
   dateBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: colors.magenta,
+    backgroundColor: c.magenta,
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 12,
     marginBottom: 14,
   },
   dateText: {
-    color: colors.white,
+    color: c.white,
     fontWeight: '900',
     fontSize: 13,
     letterSpacing: 1,
@@ -174,12 +178,12 @@ const styles = StyleSheet.create({
   },
 
   claimBtn: {
-    backgroundColor: colors.btnGreen,
+    backgroundColor: c.btnGreen,
     paddingVertical: 20,
     borderRadius: 20,
     alignItems: 'center',
     borderBottomWidth: 6,
-    borderBottomColor: colors.btnGreenDark,
+    borderBottomColor: c.btnGreenDark,
     elevation: 4,
   },
   claimBtnDone: {
@@ -187,7 +191,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#6B5F70',
   },
   claimBtnText: {
-    color: colors.white,
+    color: c.white,
     fontSize: 20,
     fontWeight: '900',
     letterSpacing: 2,
