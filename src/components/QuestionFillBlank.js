@@ -124,13 +124,13 @@ const makeStyles = (c) => StyleSheet.create({
   },
   blankCorrect: {
     borderBottomColor: '#10B981',
-    color: '#065F46',
-    backgroundColor: '#D1FAE5',
+    color: c.correctText,
+    backgroundColor: c.correct,
   },
   blankWrong: {
     borderBottomColor: '#EF4444',
-    color: '#991B1B',
-    backgroundColor: '#FEE2E2',
+    color: c.wrongText,
+    backgroundColor: c.wrong,
   },
   wordGrid: {
     flexDirection: 'row',
@@ -158,11 +158,11 @@ const makeStyles = (c) => StyleSheet.create({
   },
   wordBoxCorrect: {
     borderColor: '#10B981',
-    backgroundColor: '#D1FAE5',
+    backgroundColor: c.correct,
   },
   wordBoxWrong: {
     borderColor: '#EF4444',
-    backgroundColor: '#FEE2E2',
+    backgroundColor: c.wrong,
   },
   wordText: {
     fontFamily: fonts.bold,

@@ -172,8 +172,8 @@ const makeStyles = (c) => StyleSheet.create({
   chipRight:     { backgroundColor: c.inputBg },
   chipSelected:  { borderColor: c.primary, backgroundColor: c.inputBg },
   chipHighlight: { borderColor: '#A5B4FC',       backgroundColor: '#F5F3FF' },
-  chipCorrect:   { borderColor: '#10B981',       backgroundColor: '#D1FAE5' },
-  chipWrong:     { borderColor: '#EF4444',       backgroundColor: '#FEE2E2' },
+  chipCorrect:   { borderColor: '#10B981', backgroundColor: c.correct },
+  chipWrong:     { borderColor: '#EF4444', backgroundColor: c.wrong },
   chipHint:      { borderColor: '#F59E0B',       backgroundColor: '#FEF3C7', borderWidth: 2.5 },
 
   chipText: {
@@ -192,7 +192,7 @@ const makeStyles = (c) => StyleSheet.create({
 
   wrongSummary: {
     marginTop: 16,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: c.wrong,
     borderRadius: 12,
     padding: 14,
     borderLeftWidth: 4,
@@ -202,7 +202,7 @@ const makeStyles = (c) => StyleSheet.create({
   wrongSummaryTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#991B1B',
+    color: c.wrongText,
     marginBottom: 4,
   },
   wrongSummaryRow: {

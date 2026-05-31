@@ -187,8 +187,8 @@ const makeStyles = (c) => StyleSheet.create({
     backgroundColor: c.cardBg,
     borderRadius: 16,
     overflow: 'hidden',
-    borderBottomWidth: 5,
-    borderBottomColor: c.magentaDark,
+    borderBottomWidth: 4,
+    borderBottomColor: c.imgPlaceholder,
   },
 
   row: {

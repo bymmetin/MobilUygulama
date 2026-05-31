@@ -167,13 +167,13 @@ const makeStyles = (c) => StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#3A3040',
+    color: c.text,
     marginBottom: 10,
   },
   body: {
     fontSize: 16,
     lineHeight: 24,
-    color: '#5A5060',
+    color: c.text,
     fontWeight: '500',
   },
 
@@ -200,7 +200,7 @@ const makeStyles = (c) => StyleSheet.create({
   hint: {
     textAlign: 'center',
     marginTop: 16,
-    color: '#9A9098',
+    color: c.textMuted,
     fontSize: 13,
     fontWeight: '600',
   },

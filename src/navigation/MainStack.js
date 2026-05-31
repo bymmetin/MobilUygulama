@@ -44,8 +44,7 @@ function HomeTabs() {
         tabBarShowLabel: false,
         tabBarStyle: {
           backgroundColor: colors.tabBar,
-          borderTopWidth: 3,
-          borderTopColor: colors.magentaDark,
+          borderTopWidth: 0,
           height: 72,
           paddingTop: 8,
           paddingBottom: 8,
