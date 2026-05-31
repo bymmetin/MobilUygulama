@@ -4,6 +4,7 @@ import {
   TouchableOpacity, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Linking } from 'react-native';
 import { getSettings, setSetting, DEFAULT_SETTINGS } from '../services/settingsService';
 import { logout } from '../services/authService';
 import { useTheme } from '../context/ThemeContext';
@@ -35,6 +36,12 @@ export default function SettingsScreen({ navigation }) {
   const handleSoon = (label) => {
     Alert.alert(label, 'Bu özellik yakında eklenecek.');
   };
+
+  const openPrivacy = () =>
+    Linking.openURL('https://policies.google.com/privacy');
+
+  const openTerms = () =>
+    Linking.openURL('https://policies.google.com/terms');
 
   const handleDeleteAccount = () => {
     Alert.alert(
@@ -88,9 +95,9 @@ export default function SettingsScreen({ navigation }) {
         <View style={styles.card}>
           <InfoRow s={styles} label="Uygulama Sürümü" value={APP_VERSION} />
           <Divider s={styles} />
-          <ActionRow s={styles} label="Gizlilik Politikası" onPress={() => handleSoon('Gizlilik politikası')} />
+          <ActionRow s={styles} label="Gizlilik Politikası" onPress={openPrivacy} />
           <Divider s={styles} />
-          <ActionRow s={styles} label="Kullanım Koşulları" onPress={() => handleSoon('Kullanım koşulları')} />
+          <ActionRow s={styles} label="Kullanım Koşulları" onPress={openTerms} />
         </View>
 
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
