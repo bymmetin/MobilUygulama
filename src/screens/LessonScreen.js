@@ -19,6 +19,21 @@ const XP_PER_CORRECT = 10;
 const isInfoCard = (q) =>
   q?.question_type === 'multiple_choice' && !q?.option_a;
 
+// Bilgi → Soru → Bilgi → Soru alternasyonu (önceki aşama sorusu en sona)
+const interleaveInfoAndQuiz = (arr) => {
+  const infos    = arr.filter(q => isInfoCard(q) && !q._isPrevStage);
+  const quizzes  = arr.filter(q => !isInfoCard(q) && !q._isPrevStage);
+  const prevStg  = arr.find(q => q._isPrevStage);
+  const result   = [];
+  const max = Math.max(infos.length, quizzes.length);
+  for (let i = 0; i < max; i++) {
+    if (infos[i])   result.push(infos[i]);
+    if (quizzes[i]) result.push(quizzes[i]);
+  }
+  if (prevStg) result.push(prevStg);
+  return result;
+};
+
 export default function LessonScreen({ route, navigation }) {
   const { lesson }    = route.params;
   const prevLesson    = route.params?.prevLesson    ?? null;
@@ -54,11 +69,10 @@ export default function LessonScreen({ route, navigation }) {
         }
       }
 
-      if (questionIds && questionIds.length > 0) {
-        setQuestions(allQs.filter(q => questionIds.includes(q.id)));
-      } else {
-        setQuestions(allQs);
-      }
+      const filtered = questionIds && questionIds.length > 0
+        ? allQs.filter(q => questionIds.includes(q.id))
+        : allQs;
+      setQuestions(interleaveInfoAndQuiz(filtered));
     };
     load();
     getCurrentUser().then(setUser);
