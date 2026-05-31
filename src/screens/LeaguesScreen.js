@@ -132,7 +132,7 @@ const makeStyles = (c) => StyleSheet.create({
   },
 
   rankBox: { width: 36, alignItems: 'center', justifyContent: 'center' },
-  rankText: { fontSize: 18, fontWeight: '900', color: '#7A7080' },
+  rankText: { fontSize: 18, fontWeight: '900', color: c.textMuted },
   medal: { fontSize: 26 },
 
   avatar: {
@@ -143,9 +143,9 @@ const makeStyles = (c) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { fontSize: 18, fontWeight: '900', color: '#7A7080' },
+  avatarText: { fontSize: 18, fontWeight: '900', color: c.text },
 
-  username: { flex: 1, fontSize: 16, fontWeight: '800', color: '#3A3040' },
+  username: { flex: 1, fontSize: 16, fontWeight: '800', color: c.text },
   usernameMe: { color: c.white },
 
   xp: { fontSize: 15, fontWeight: '900', color: c.xp },

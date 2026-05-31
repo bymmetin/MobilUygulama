@@ -293,9 +293,9 @@ export default function LessonScreen({ route, navigation }) {
                   let bg     = colors.magentaBtn;
                   let shadow = colors.magentaBtnShadow;
                   if (answered) {
-                    if (isCorrectOpt)       { bg = '#00BB00'; shadow = '#007700'; }
-                    else if (isSelected)    { bg = '#CC2020'; shadow = '#880000'; }
-                    else                    { bg = '#CC00AA'; shadow = '#880070'; }
+                    if (isCorrectOpt)    { bg = colors.optionCorrect; shadow = colors.optionCorrectShadow; }
+                    else if (isSelected) { bg = colors.optionWrong;   shadow = colors.optionWrongShadow; }
+                    else                 { bg = colors.optionOther;   shadow = colors.optionOtherShadow; }
                   }
                   return (
                     <TouchableOpacity
@@ -393,10 +393,10 @@ const makeStyles = (c) => StyleSheet.create({
     paddingVertical: 8,
   },
   closeBtn: { padding: 6 },
-  closeBtnText: { fontSize: 22, color: '#888', fontWeight: 'bold' },
+  closeBtnText: { fontSize: 22, color: c.textMuted, fontWeight: 'bold' },
   livesRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   heartEmoji: { fontSize: 22 },
-  livesLabel: { fontSize: 13, fontWeight: '700', color: '#555' },
+  livesLabel: { fontSize: 13, fontWeight: '700', color: c.text },
 
   content: { flex: 1 },
   contentInner: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24 },
@@ -426,7 +426,7 @@ const makeStyles = (c) => StyleSheet.create({
   },
 
   questionText: {
-    fontSize: 20, fontWeight: '800', color: '#4A4050',
+    fontSize: 20, fontWeight: '800', color: c.text,
     textAlign: 'center', marginBottom: 24, lineHeight: 28,
   },
   questionTextNoImage: { fontSize: 24, marginTop: 24, marginBottom: 32, lineHeight: 34 },
@@ -436,7 +436,7 @@ const makeStyles = (c) => StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     lineHeight: 26,
-    color: '#3A3040',
+    color: c.text,
     textAlign: 'left',
     marginTop: 8,
     marginBottom: 8,
@@ -495,6 +495,6 @@ const makeStyles = (c) => StyleSheet.create({
   continueBtnText: { fontSize: 22, fontWeight: '900', letterSpacing: 3 },
 
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  emptyText: { fontSize: 16, color: '#6B7280', textAlign: 'center', marginBottom: 20 },
+  emptyText: { fontSize: 16, color: c.textMuted, textAlign: 'center', marginBottom: 20 },
   backLink: { fontSize: 16, color: c.primary, fontWeight: '600' },
 });

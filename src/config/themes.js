@@ -46,6 +46,22 @@ export const lightColors = {
   cardBg:           '#D0C8D4',
   bottomPanel:      '#B4ACBA',
   imgPlaceholder:   '#C8C0CC',
+
+  // Quiz şık renkleri (cevap verildikten sonra)
+  optionCorrect:       '#00BB00',
+  optionCorrectShadow: '#007700',
+  optionWrong:         '#CC2020',
+  optionWrongShadow:   '#880000',
+  optionOther:         '#CC00AA',  // cevap sonrası tıklanmayanlar
+  optionOtherShadow:   '#880070',
+
+  // Sonuç ekranı (kazandı / kaybetti)
+  winColor:           '#C8B000',
+  loseColor:          '#FF2020',
+  loseShadow:         '#AA0000',
+  statRowBg:          'rgba(255,255,255,0.85)',
+  statRowDivider:     '#C8C0CC',
+  statRowText:        '#3A3040',
 };
 
 export const darkColors = {
@@ -96,4 +112,20 @@ export const darkColors = {
   cardBg:           '#2D1F45',
   bottomPanel:      '#3D2D55',
   imgPlaceholder:   '#3D2D50',
+
+  // Quiz şık renkleri — dark için sönük tonlar
+  optionCorrect:       '#008800',
+  optionCorrectShadow: '#005500',
+  optionWrong:         '#992020',
+  optionWrongShadow:   '#5A0000',
+  optionOther:         '#5A0070',
+  optionOtherShadow:   '#3A0050',
+
+  // Sonuç ekranı (kazandı / kaybetti) — dark sönük
+  winColor:           '#D4B800',
+  loseColor:          '#CC1F1F',
+  loseShadow:         '#7A0000',
+  statRowBg:          '#2D1F45',
+  statRowDivider:     '#4A3060',
+  statRowText:        '#F0E6FF',
 };
