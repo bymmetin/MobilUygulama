@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { getCurrentUser } from '../services/authService';
 import { addXP } from '../services/contentService';
+import { playSound } from '../services/soundService';
 import { fonts } from '../config/theme';
 import { useTheme } from '../context/ThemeContext';
 
@@ -81,6 +82,7 @@ export default function DailyScreen() {
       await addXP(user.id, DAILY_BONUS);
       await AsyncStorage.setItem(`daily_claim_${user.id}`, today);
       setClaimed(true);
+      playSound('complete');
       Alert.alert('Tebrikler!', `+${DAILY_BONUS} XP kazandın`);
     } catch (e) {
       Alert.alert('Hata', 'XP eklenirken bir sorun oluştu.');

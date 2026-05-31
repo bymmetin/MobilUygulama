@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { getQuestionsByLesson, getRandomAnswerableQuestion } from '../services/dataService';
 import { saveProgress, addXP, updateStreak } from '../services/contentService';
 import { getCurrentUser } from '../services/authService';
+import { playSound } from '../services/soundService';
 import QuestionMatching from '../components/QuestionMatching';
 import QuestionFillBlank from '../components/QuestionFillBlank';
 import { useTheme } from '../context/ThemeContext';
@@ -139,6 +140,7 @@ export default function LessonScreen({ route, navigation }) {
       console.warn('finishLesson DB hatası:', e.message);
     }
 
+    if (score >= 50) playSound('complete'); // ders geçilince ses
     navigation.replace('Result', {
       lesson, score, correct: displayCorrect, total: displayTotal, earnedXP,
     });
@@ -148,6 +150,7 @@ export default function LessonScreen({ route, navigation }) {
     if (answered) return;
     setAnswered(true);
     setLastCorrect(isCorrect);
+    playSound(isCorrect ? 'correct' : 'wrong'); // ses efekti
 
     // Önceki aşama sorusu: skoru / canı etkileme, sadece geri bildirim göster
     if (isPrevStage) return;
