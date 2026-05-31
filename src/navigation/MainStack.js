@@ -44,15 +44,12 @@ function HomeTabs() {
         tabBarShowLabel: false,
         tabBarStyle: {
           backgroundColor: colors.tabBar,
-          borderTopWidth: 0,
+          borderTopWidth: 3,
+          borderTopColor: colors.magentaDark,
           height: 72,
           paddingTop: 8,
           paddingBottom: 8,
-          elevation: 16,
-          shadowColor: '#3A1A4A',
-          shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 6,
+          elevation: 0,
         },
         tabBarIcon: ({ focused }) => (
           <TabIcon name={route.name} focused={focused} />

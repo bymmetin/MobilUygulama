@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { getCurrentUser, logout } from '../services/authService';
+import { getCurrentUser } from '../services/authService';
 import { getUserProgress } from '../services/contentService';
 import { getDB } from '../db/database';
 import { useTheme } from '../context/ThemeContext';
@@ -122,10 +122,6 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-          <Text style={styles.logoutText}>Çıkış Yap</Text>
-        </TouchableOpacity>
-
       </ScrollView>
     </SafeAreaView>
   );
@@ -149,7 +145,7 @@ const makeStyles = (c) => StyleSheet.create({
     // Android gölge
     elevation: 5,
   },
-  settingsIcon: { fontSize: 22, color: '#5A5060' },
+  settingsIcon: { fontSize: 22, color: c.textMuted },
   scroll: { padding: 20, paddingTop: 8, paddingBottom: 40 },
 
   topRow: {
@@ -173,7 +169,7 @@ const makeStyles = (c) => StyleSheet.create({
     shadowOpacity: 0.45,
     shadowRadius: 7,
   },
-  avatarText: { fontSize: 32, fontWeight: '900', color: '#5A4868' },
+  avatarText: { fontSize: 32, fontWeight: '900', color: c.text },
   infoBox: {
     flex: 1,
     backgroundColor: c.cardBg,
@@ -194,11 +190,11 @@ const makeStyles = (c) => StyleSheet.create({
   infoBoxTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#7A7080',
+    color: c.textMuted,
     letterSpacing: 1,
   },
-  infoBoxName: { fontSize: 15, fontWeight: '700', color: '#5A5060', marginTop: 4 },
-  infoBoxEmail: { fontSize: 12, color: '#9A9098', marginTop: 2 },
+  infoBoxName: { fontSize: 15, fontWeight: '700', color: c.text, marginTop: 4 },
+  infoBoxEmail: { fontSize: 12, color: c.textMuted, marginTop: 2 },
 
   card: {
     backgroundColor: c.cardBg,
@@ -218,7 +214,7 @@ const makeStyles = (c) => StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#7A7080',
+    color: c.textMuted,
     letterSpacing: 1,
     marginBottom: 18,
     textAlign: 'center',
@@ -229,20 +225,20 @@ const makeStyles = (c) => StyleSheet.create({
     alignItems: 'center',
   },
   stat: { alignItems: 'center', flex: 1 },
-  statNum: { fontSize: 26, fontWeight: '900', color: '#5A5060' },
+  statNum: { fontSize: 26, fontWeight: '900', color: c.text },
   statLabel: {
     fontSize: 11,
-    color: '#9A9098',
+    color: c.textMuted,
     marginTop: 6,
     textAlign: 'center',
     lineHeight: 16,
   },
-  divider: { width: 1, height: 44, backgroundColor: '#B8B0BC' },
+  divider: { width: 1, height: 44, backgroundColor: c.imgPlaceholder },
 
   xpTrack: {
     marginTop: 16,
     height: 8,
-    backgroundColor: '#B8B0BC',
+    backgroundColor: c.imgPlaceholder,
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -252,22 +248,4 @@ const makeStyles = (c) => StyleSheet.create({
     borderRadius: 4,
   },
 
-  logoutBtn: {
-    backgroundColor: '#FFF0F0',
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderRightWidth: 2,
-    borderTopColor: '#EF4444',
-    borderLeftColor: '#EF4444',
-    borderRightColor: '#EF4444',
-    borderBottomWidth: 5,
-    borderBottomColor: '#EF4444',
-    borderRadius: 16,
-    paddingTop: 14,
-    paddingBottom: 10,
-    alignItems: 'center',
-    marginTop: 4,
-    elevation: 2,
-  },
-  logoutText: { color: '#EF4444', fontWeight: '700', fontSize: 16 },
 });
