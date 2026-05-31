@@ -7,6 +7,7 @@ import DailyScreen from '../screens/DailyScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import LessonScreen from '../screens/LessonScreen';
 import ResultScreen from '../screens/ResultScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 import { colors } from '../config/theme';
 
 import HomeIcon from '../../assets/tab-home.svg';
@@ -66,6 +67,7 @@ export default function MainStack() {
       <Stack.Screen name="HomeTabs" component={HomeTabs} />
       <Stack.Screen name="Lesson" component={LessonScreen} />
       <Stack.Screen name="Result" component={ResultScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
 }
