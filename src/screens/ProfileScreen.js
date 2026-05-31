@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { getCurrentUser } from '../services/authService';
 import { getUserProgress } from '../services/contentService';
-import { getDB } from '../db/database';
 import { useTheme } from '../context/ThemeContext';
 
 export default function ProfileScreen({ navigation }) {
@@ -16,16 +15,10 @@ export default function ProfileScreen({ navigation }) {
   useFocusEffect(
     useCallback(() => {
       const load = async () => {
+        // getCurrentUser zaten profiles tablosundan taze XP/streak çeker
         const u = await getCurrentUser();
         if (!u) return;
-
-        // XP ve streak'i her zaman DB'den taze çek (AsyncStorage geride kalabilir)
-        const db = await getDB();
-        const fresh = await db.getFirstAsync(
-          'SELECT xp, streak FROM users WHERE id = ?', [u.id]
-        );
-        const updatedUser = { ...u, xp: fresh?.xp ?? u.xp, streak: fresh?.streak ?? u.streak };
-        setUser(updatedUser);
+        setUser(u);
 
         const progress = await getUserProgress(u.id);
         const completed = progress.filter(p => p.completed);

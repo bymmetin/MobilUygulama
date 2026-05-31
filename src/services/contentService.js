@@ -1,113 +1,110 @@
-import { getDB } from '../db/database';
+import { supabase } from '../config/supabase';
 
-// Veri katmanı — şu an SQLite, ileride API endpoint'e taşınabilir.
-// Ekranlar bu servisi kullanır, kaynağı bilmez.
+// Kullanıcı ilerlemesi ve XP/streak artık Supabase'de (profiles + user_progress).
+// İçerik (topics/lessons/questions) dataService.js üzerinden gelir.
 
-export const getTopics = async () => {
-  const db = await getDB();
-  return db.getAllAsync('SELECT * FROM topics ORDER BY order_num');
-};
-
-export const getLessonsByTopic = async (topicId) => {
-  const db = await getDB();
-  return db.getAllAsync(
-    'SELECT * FROM lessons WHERE topic_id = ? ORDER BY order_num',
-    [topicId]
-  );
-};
-
-export const getQuestionsByLesson = async (lessonId) => {
-  const db = await getDB();
-  return db.getAllAsync(
-    'SELECT * FROM questions WHERE lesson_id = ?',
-    [lessonId]
-  );
-};
-
-export const saveProgress = async (userId, lessonId, score, correctCount = 0, totalCount = 0, earnedXP = 0, wrongQuestionIds = []) => {
-  const db = await getDB();
+export const saveProgress = async (
+  userId, lessonId, score,
+  correctCount = 0, totalCount = 0, earnedXP = 0, wrongQuestionIds = []
+) => {
   const wrongJson = JSON.stringify(wrongQuestionIds);
-  const existing = await db.getFirstAsync(
-    'SELECT * FROM user_progress WHERE user_id = ? AND lesson_id = ?',
-    [userId, lessonId]
-  );
+
+  const { data: existing } = await supabase
+    .from('user_progress')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('lesson_id', lessonId)
+    .maybeSingle();
+
   if (existing) {
     // Skor sadece yükselebilir — tekrar oynayıp düşük skor alınca aşama kilitlenmesin
-    const oldScore = existing.score ?? 0;
-    if (score > oldScore) {
-      // Yeni skor daha iyi → tüm snapshot güncellensin
-      await db.runAsync(
-        `UPDATE user_progress
-         SET completed = 1, score = ?, correct_count = ?, total_count = ?, earned_xp = ?, wrong_question_ids = ?
-         WHERE user_id = ? AND lesson_id = ?`,
-        [score, correctCount, totalCount, earnedXP, wrongJson, userId, lessonId]
-      );
+    if (score > (existing.score ?? 0)) {
+      await supabase.from('user_progress').update({
+        completed: 1,
+        score,
+        correct_count: correctCount,
+        total_count: totalCount,
+        earned_xp: (existing.earned_xp ?? 0) + earnedXP,
+        wrong_question_ids: wrongJson,
+      }).eq('user_id', userId).eq('lesson_id', lessonId);
     } else {
-      // Yeni skor daha düşük/eşit → eski en iyi skoru koru, sadece wrong_question_ids güncellensin (retry akışı için)
-      await db.runAsync(
-        `UPDATE user_progress
-         SET wrong_question_ids = ?
-         WHERE user_id = ? AND lesson_id = ?`,
-        [wrongJson, userId, lessonId]
-      );
+      // Skor daha düşük/eşit → en iyi skoru koru, sadece yanlış soruları güncelle
+      await supabase.from('user_progress').update({
+        earned_xp: (existing.earned_xp ?? 0) + earnedXP,
+        wrong_question_ids: wrongJson,
+      }).eq('user_id', userId).eq('lesson_id', lessonId);
     }
   } else {
-    await db.runAsync(
-      `INSERT INTO user_progress
-        (user_id, lesson_id, completed, score, correct_count, total_count, earned_xp, wrong_question_ids)
-       VALUES (?, ?, 1, ?, ?, ?, ?, ?)`,
-      [userId, lessonId, score, correctCount, totalCount, earnedXP, wrongJson]
-    );
+    await supabase.from('user_progress').insert({
+      user_id: userId,
+      lesson_id: lessonId,
+      completed: 1,
+      score,
+      correct_count: correctCount,
+      total_count: totalCount,
+      earned_xp: earnedXP,
+      wrong_question_ids: wrongJson,
+    });
   }
 };
 
 export const getUserProgress = async (userId) => {
-  const db = await getDB();
-  return db.getAllAsync(
-    'SELECT * FROM user_progress WHERE user_id = ?',
-    [userId]
-  );
+  const { data } = await supabase
+    .from('user_progress')
+    .select('*')
+    .eq('user_id', userId);
+  return data ?? [];
 };
 
 export const deleteProgress = async (userId, lessonId) => {
-  const db = await getDB();
-  await db.runAsync(
-    'DELETE FROM user_progress WHERE user_id = ? AND lesson_id = ?',
-    [userId, lessonId]
-  );
+  await supabase
+    .from('user_progress')
+    .delete()
+    .eq('user_id', userId)
+    .eq('lesson_id', lessonId);
 };
 
 export const addXP = async (userId, amount) => {
-  const db = await getDB();
-  await db.runAsync(
-    'UPDATE users SET xp = xp + ? WHERE id = ?',
-    [amount, userId]
-  );
-  return db.getFirstAsync('SELECT xp, streak FROM users WHERE id = ?', [userId]);
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('xp, streak')
+    .eq('id', userId)
+    .maybeSingle();
+
+  const newXp = (profile?.xp ?? 0) + amount;
+  await supabase.from('profiles').update({ xp: newXp }).eq('id', userId);
+  return { xp: newXp, streak: profile?.streak ?? 0 };
 };
 
-// Günlük streak yönetimi:
-// Bugün zaten oynadıysa → değişmez
-// Dün oynadıysa       → streak + 1
-// Daha önce / hiç     → streak = 1 (sıfırla)
+// Günlük streak yönetimi
 export const updateStreak = async (userId) => {
-  const db = await getDB();
-  const user = await db.getFirstAsync(
-    'SELECT streak, last_login FROM users WHERE id = ?',
-    [userId]
-  );
-  if (!user) return;
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('streak, last_login')
+    .eq('id', userId)
+    .maybeSingle();
+  if (!profile) return;
 
-  const today     = new Date().toISOString().slice(0, 10); // "2026-05-31"
-  const lastLogin = user.last_login ? user.last_login.slice(0, 10) : null;
+  const today     = new Date().toISOString().slice(0, 10);
+  const lastLogin = profile.last_login ? profile.last_login.slice(0, 10) : null;
 
   if (lastLogin === today) return; // Bugün zaten oynandı
 
   const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  const newStreak = lastLogin === yesterday ? (user.streak ?? 0) + 1 : 1;
+  const newStreak = lastLogin === yesterday ? (profile.streak ?? 0) + 1 : 1;
 
-  await db.runAsync(
-    'UPDATE users SET streak = ?, last_login = ? WHERE id = ?',
-    [newStreak, today, userId]
-  );
+  await supabase
+    .from('profiles')
+    .update({ streak: newStreak, last_login: today })
+    .eq('id', userId);
+};
+
+// TEST MODU: Kullanıcının ilerlemesini ve XP/streak'ini sıfırlar (hesap korunur).
+// App.js her açılışta çağırır. Üretime geçerken kaldırılacak.
+export const resetUserDataForTest = async (userId) => {
+  await supabase.from('user_progress').delete().eq('user_id', userId);
+  await supabase
+    .from('profiles')
+    .update({ xp: 0, streak: 0, last_login: null })
+    .eq('id', userId);
 };

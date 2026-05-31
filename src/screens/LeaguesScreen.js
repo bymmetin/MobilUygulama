@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { getCurrentUser } from '../services/authService';
-import { getDB } from '../db/database';
+import { supabase } from '../config/supabase';
 import { fonts } from '../config/theme';
 import { useTheme } from '../context/ThemeContext';
 
@@ -31,9 +31,11 @@ export default function LeaguesScreen() {
       const load = async () => {
         const u = await getCurrentUser();
         setUser(u);
-        const db = await getDB();
-        const realUsers = await db.getAllAsync('SELECT id, username, xp FROM users');
-        const merged = [...realUsers, ...FAKE_RIVALS].sort(
+        // Tüm kullanıcıları Supabase profiles'tan çek
+        const { data: realUsers } = await supabase
+          .from('profiles')
+          .select('id, username, xp');
+        const merged = [...(realUsers ?? []), ...FAKE_RIVALS].sort(
           (a, b) => (b.xp ?? 0) - (a.xp ?? 0)
         );
         setBoard(merged);

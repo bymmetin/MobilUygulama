@@ -36,7 +36,7 @@ export default function LoginScreen({ navigation }) {
         <View style={styles.inputCard}>
           <TextInput
             style={styles.input}
-            placeholder="Email or username"
+            placeholder="Email"
             placeholderTextColor={colors.textMuted}
             value={email}
             onChangeText={setEmail}

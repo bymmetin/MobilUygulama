@@ -6,6 +6,8 @@ import { Poppins_700Bold, Poppins_800ExtraBold } from '@expo-google-fonts/poppin
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initDB } from './src/db/database';
 import { ThemeProvider } from './src/context/ThemeContext';
+import { getCurrentUser } from './src/services/authService';
+import { resetUserDataForTest } from './src/services/contentService';
 import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
@@ -25,6 +27,14 @@ export default function App() {
       const keys = await AsyncStorage.getAllKeys();
       const claimKeys = keys.filter(k => k.startsWith('daily_claim_'));
       if (claimKeys.length > 0) await AsyncStorage.multiRemove(claimKeys);
+      // TEST MODU: Giriş yapmış kullanıcının XP/streak/ilerlemesini sıfırla
+      // (hesap korunur — sadece veriler sıfırlanır). Üretimde kaldırılacak.
+      try {
+        const u = await getCurrentUser();
+        if (u) await resetUserDataForTest(u.id);
+      } catch (e) {
+        console.warn('Test reset hatası:', e.message);
+      }
     };
     init();
   }, []);
