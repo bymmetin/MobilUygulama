@@ -54,12 +54,25 @@ export const register = async (username, email, password) => {
   }
 };
 
+// Profil yoksa otomatik oluştur (kayıt sırasında izin hatası olduysa burası yakalar)
+const ensureProfile = async (authUser, username) => {
+  let profile = await fetchProfile(authUser.id);
+  if (!profile) {
+    await supabase.from('profiles').upsert({
+      id: authUser.id,
+      username: username ?? authUser.email?.split('@')[0] ?? 'kullanıcı',
+    });
+    profile = await fetchProfile(authUser.id);
+  }
+  return profile;
+};
+
 export const login = async (email, password) => {
   try {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { success: false, message: cevirHata(error.message) };
 
-    const profile = await fetchProfile(data.user.id);
+    const profile = await ensureProfile(data.user);
     const user = buildUser(data.user, profile);
     if (setGlobalUser) setGlobalUser(user);
     return { success: true, user };
@@ -76,6 +89,6 @@ export const logout = async () => {
 export const getCurrentUser = async () => {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user) return null;
-  const profile = await fetchProfile(session.user.id);
+  const profile = await ensureProfile(session.user);
   return buildUser(session.user, profile);
 };

@@ -72,7 +72,8 @@ export const addXP = async (userId, amount) => {
     .maybeSingle();
 
   const newXp = (profile?.xp ?? 0) + amount;
-  await supabase.from('profiles').update({ xp: newXp }).eq('id', userId);
+  // upsert: satır yoksa oluştururk, varsa günceller
+  await supabase.from('profiles').upsert({ id: userId, xp: newXp });
   return { xp: newXp, streak: profile?.streak ?? 0 };
 };
 
@@ -83,20 +84,19 @@ export const updateStreak = async (userId) => {
     .select('streak, last_login')
     .eq('id', userId)
     .maybeSingle();
-  if (!profile) return;
 
   const today     = new Date().toISOString().slice(0, 10);
-  const lastLogin = profile.last_login ? profile.last_login.slice(0, 10) : null;
+  const lastLogin = profile?.last_login ? profile.last_login.slice(0, 10) : null;
 
   if (lastLogin === today) return; // Bugün zaten oynandı
 
   const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  const newStreak = lastLogin === yesterday ? (profile.streak ?? 0) + 1 : 1;
+  const newStreak = lastLogin === yesterday ? (profile?.streak ?? 0) + 1 : 1;
 
+  // upsert: satır yoksa da çalışır
   await supabase
     .from('profiles')
-    .update({ streak: newStreak, last_login: today })
-    .eq('id', userId);
+    .upsert({ id: userId, streak: newStreak, last_login: today });
 };
 
 // TEST MODU: Kullanıcının ilerlemesini ve XP/streak'ini sıfırlar (hesap korunur).
