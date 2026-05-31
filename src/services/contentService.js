@@ -71,3 +71,25 @@ export const addXP = async (userId, amount) => {
   );
   return db.getFirstAsync('SELECT xp, streak FROM users WHERE id = ?', [userId]);
 };
+
+export const updateStreak = async (userId) => {
+  const db = await getDB();
+  const user = await db.getFirstAsync(
+    'SELECT streak, last_login FROM users WHERE id = ?',
+    [userId]
+  );
+  if (!user) return;
+
+  const today = new Date().toISOString().slice(0, 10); // "2026-05-31"
+  const lastLogin = user.last_login ? user.last_login.slice(0, 10) : null;
+
+  if (lastLogin === today) return; // Bugün zaten oynadı
+
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const newStreak = lastLogin === yesterday ? (user.streak ?? 0) + 1 : 1;
+
+  await db.runAsync(
+    'UPDATE users SET streak = ?, last_login = ? WHERE id = ?',
+    [newStreak, today, userId]
+  );
+};
