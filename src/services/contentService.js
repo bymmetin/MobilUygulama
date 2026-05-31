@@ -32,12 +32,25 @@ export const saveProgress = async (userId, lessonId, score, correctCount = 0, to
     [userId, lessonId]
   );
   if (existing) {
-    await db.runAsync(
-      `UPDATE user_progress
-       SET completed = 1, score = ?, correct_count = ?, total_count = ?, earned_xp = ?, wrong_question_ids = ?
-       WHERE user_id = ? AND lesson_id = ?`,
-      [score, correctCount, totalCount, earnedXP, wrongJson, userId, lessonId]
-    );
+    // Skor sadece yükselebilir — tekrar oynayıp düşük skor alınca aşama kilitlenmesin
+    const oldScore = existing.score ?? 0;
+    if (score > oldScore) {
+      // Yeni skor daha iyi → tüm snapshot güncellensin
+      await db.runAsync(
+        `UPDATE user_progress
+         SET completed = 1, score = ?, correct_count = ?, total_count = ?, earned_xp = ?, wrong_question_ids = ?
+         WHERE user_id = ? AND lesson_id = ?`,
+        [score, correctCount, totalCount, earnedXP, wrongJson, userId, lessonId]
+      );
+    } else {
+      // Yeni skor daha düşük/eşit → eski en iyi skoru koru, sadece wrong_question_ids güncellensin (retry akışı için)
+      await db.runAsync(
+        `UPDATE user_progress
+         SET wrong_question_ids = ?
+         WHERE user_id = ? AND lesson_id = ?`,
+        [wrongJson, userId, lessonId]
+      );
+    }
   } else {
     await db.runAsync(
       `INSERT INTO user_progress
