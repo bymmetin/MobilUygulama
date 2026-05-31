@@ -8,6 +8,8 @@ import { initDB } from './src/db/database';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { getCurrentUser } from './src/services/authService';
 import { resetUserDataForTest } from './src/services/contentService';
+import { scheduleDailyReminder } from './src/services/notificationService';
+import { getSettings } from './src/services/settingsService';
 import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
@@ -34,6 +36,13 @@ export default function App() {
         if (u) await resetUserDataForTest(u.id);
       } catch (e) {
         console.warn('Test reset hatası:', e.message);
+      }
+      // Bildirimler açıksa günlük hatırlatmayı planla
+      try {
+        const s = await getSettings();
+        if (s.notifications) await scheduleDailyReminder();
+      } catch (e) {
+        console.warn('Bildirim planlama hatası:', e.message);
       }
     };
     init();

@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Linking } from 'react-native';
 import { getSettings, setSetting, DEFAULT_SETTINGS } from '../services/settingsService';
+import { scheduleDailyReminder, cancelReminders } from '../services/notificationService';
 import { logout } from '../services/authService';
 import { useTheme } from '../context/ThemeContext';
 import { fonts } from '../config/theme';
@@ -24,6 +25,13 @@ export default function SettingsScreen({ navigation }) {
     const next = await setSetting(key, !settings[key]);
     setSettings(next);
     if (key === 'darkMode') toggleDark(next.darkMode);
+    if (key === 'notifications') {
+      if (next.notifications) {
+        await scheduleDailyReminder();
+      } else {
+        await cancelReminders();
+      }
+    }
   };
 
   const handleLogout = () => {
