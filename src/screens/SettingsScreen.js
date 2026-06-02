@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Switch,
-  TouchableOpacity, Alert, Modal, TextInput,
+  TouchableOpacity, Alert, Modal, TextInput, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -9,15 +9,18 @@ import { getSettings, setSetting, DEFAULT_SETTINGS } from '../services/settingsS
 import { scheduleDailyReminder, cancelReminders } from '../services/notificationService';
 import { logout, getCurrentUser } from '../services/authService';
 import { supabase } from '../config/supabase';
-import { colors, fonts } from '../config/theme';
+import { useTheme } from '../context/ThemeContext';
+import { fonts } from '../config/theme';
 
 const APP_VERSION = '1.0.0';
 
 export default function SettingsScreen({ navigation }) {
+  const { colors, toggleDark } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [user, setUser] = useState(null);
 
-  // Modal state
   const [editModal, setEditModal] = useState(false);
   const [pwModal, setPwModal] = useState(false);
   const [newUsername, setNewUsername] = useState('');
@@ -33,14 +36,12 @@ export default function SettingsScreen({ navigation }) {
   const toggle = async (key) => {
     const next = await setSetting(key, !settings[key]);
     setSettings(next);
-    if (key === 'notifications') {
+    if (key === 'darkMode') {
+      toggleDark(next.darkMode);
+    } else if (key === 'notifications') {
       if (next.notifications) await scheduleDailyReminder();
       else await cancelReminders();
     }
-  };
-
-  const handleSoon = (label) => {
-    Alert.alert(label, 'Bu özellik yakında eklenecek.');
   };
 
   const handleLogout = () => {
@@ -102,9 +103,7 @@ export default function SettingsScreen({ navigation }) {
           text: 'Evet, Sil',
           style: 'destructive',
           onPress: async () => {
-            // Önce kullanıcıyı sil (oturum hâlâ geçerli olmalı)
             await supabase.rpc('delete_own_account').catch(() => {});
-            // Sonra oturumu hem sunucuda hem cihazda temizle
             await supabase.auth.signOut({ scope: 'global' });
             await logout();
           },
@@ -127,37 +126,34 @@ export default function SettingsScreen({ navigation }) {
 
         <Text style={styles.sectionTitle}>SES VE BİLDİRİM</Text>
         <View style={styles.card}>
-          <SettingRow label="Ses Efektleri" description="Doğru/yanlış cevap sesleri" value={settings.soundEffects} onToggle={() => toggle('soundEffects')} />
-          <Divider />
-          <SettingRow label="Arka Plan Müziği" description="Uygulama içi müzik" value={settings.music} onToggle={() => toggle('music')} />
-          <Divider />
-          <SettingRow label="Bildirimler" description="Her gün 20:00'de hatırlatma" value={settings.notifications} onToggle={() => toggle('notifications')} />
+          <SettingRow colors={colors} label="Ses Efektleri" description="Doğru/yanlış cevap sesleri" value={settings.soundEffects} onToggle={() => toggle('soundEffects')} styles={styles} />
+          <Divider styles={styles} />
+          <SettingRow colors={colors} label="Arka Plan Müziği" description="Uygulama içi müzik" value={settings.music} onToggle={() => toggle('music')} styles={styles} />
+          <Divider styles={styles} />
+          <SettingRow colors={colors} label="Bildirimler" description="Her gün 20:00'de hatırlatma" value={settings.notifications} onToggle={() => toggle('notifications')} styles={styles} />
         </View>
 
         <Text style={styles.sectionTitle}>GÖRÜNÜM</Text>
         <View style={styles.card}>
-          <SettingRow label="Karanlık Mod" description="Koyu renk teması" value={settings.darkMode} onToggle={() => toggle('darkMode')} />
+          <SettingRow colors={colors} label="Karanlık Mod" description="Koyu renk teması" value={settings.darkMode} onToggle={() => toggle('darkMode')} styles={styles} />
         </View>
 
         <Text style={styles.sectionTitle}>HESAP</Text>
         <View style={styles.card}>
-          <ActionRow
-            label="Kullanıcı Adını Değiştir"
-            onPress={() => { setNewUsername(user?.username ?? ''); setEditModal(true); }}
-          />
-          <Divider />
-          <ActionRow label="Şifre Değiştir" onPress={() => setPwModal(true)} />
-          <Divider />
-          <ActionRow label="Hesabı Sil" onPress={handleDeleteAccount} danger />
+          <ActionRow styles={styles} label="Kullanıcı Adını Değiştir" onPress={() => { setNewUsername(user?.username ?? ''); setEditModal(true); }} />
+          <Divider styles={styles} />
+          <ActionRow styles={styles} label="Şifre Değiştir" onPress={() => setPwModal(true)} />
+          <Divider styles={styles} />
+          <ActionRow styles={styles} label="Hesabı Sil" onPress={handleDeleteAccount} danger />
         </View>
 
         <Text style={styles.sectionTitle}>HAKKINDA</Text>
         <View style={styles.card}>
-          <InfoRow label="Uygulama Sürümü" value={APP_VERSION} />
-          <Divider />
-          <ActionRow label="Gizlilik Politikası" onPress={() => handleSoon('Gizlilik Politikası')} />
-          <Divider />
-          <ActionRow label="Kullanım Koşulları" onPress={() => handleSoon('Kullanım Koşulları')} />
+          <InfoRow styles={styles} label="Uygulama Sürümü" value={APP_VERSION} />
+          <Divider styles={styles} />
+          <ActionRow styles={styles} label="Gizlilik Politikası" onPress={() => Linking.openURL('https://policies.google.com/privacy')} />
+          <Divider styles={styles} />
+          <ActionRow styles={styles} label="Kullanım Koşulları" onPress={() => Linking.openURL('https://policies.google.com/terms')} />
         </View>
 
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
@@ -176,6 +172,7 @@ export default function SettingsScreen({ navigation }) {
               value={newUsername}
               onChangeText={setNewUsername}
               placeholder="Yeni kullanıcı adı"
+              placeholderTextColor={colors.textMuted}
               autoCapitalize="none"
               autoFocus
             />
@@ -205,6 +202,7 @@ export default function SettingsScreen({ navigation }) {
               value={newPassword}
               onChangeText={setNewPassword}
               placeholder="Yeni şifre (min. 6 karakter)"
+              placeholderTextColor={colors.textMuted}
               secureTextEntry
               autoFocus
             />
@@ -213,6 +211,7 @@ export default function SettingsScreen({ navigation }) {
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               placeholder="Şifreyi tekrar gir"
+              placeholderTextColor={colors.textMuted}
               secureTextEntry
             />
             <View style={styles.modalBtns}>
@@ -238,11 +237,11 @@ export default function SettingsScreen({ navigation }) {
   );
 }
 
-function Divider() {
+function Divider({ styles }) {
   return <View style={styles.divider} />;
 }
 
-function SettingRow({ label, description, value, onToggle }) {
+function SettingRow({ colors, label, description, value, onToggle, styles }) {
   return (
     <View style={styles.row}>
       <View style={styles.rowLabelBox}>
@@ -252,14 +251,14 @@ function SettingRow({ label, description, value, onToggle }) {
       <Switch
         value={value}
         onValueChange={onToggle}
-        trackColor={{ false: '#B8B0BC', true: colors.magenta }}
+        trackColor={{ false: colors.imgPlaceholder, true: colors.magenta }}
         thumbColor={colors.white}
       />
     </View>
   );
 }
 
-function ActionRow({ label, onPress, danger }) {
+function ActionRow({ styles, label, onPress, danger }) {
   return (
     <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
       <Text style={[styles.rowLabel, danger && styles.danger]}>{label}</Text>
@@ -268,7 +267,7 @@ function ActionRow({ label, onPress, danger }) {
   );
 }
 
-function InfoRow({ label, value }) {
+function InfoRow({ styles, label, value }) {
   return (
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
@@ -277,7 +276,7 @@ function InfoRow({ label, value }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
 
   header: {
@@ -315,7 +314,7 @@ const styles = StyleSheet.create({
   rowValue: { fontSize: 14, color: colors.textMuted, fontWeight: '700' },
   chevron: { fontSize: 28, color: colors.textMuted, fontWeight: '700' },
   danger: { color: '#EF4444' },
-  divider: { height: 1, backgroundColor: 'rgba(128,0,128,0.1)', marginHorizontal: 18 },
+  divider: { height: 1, backgroundColor: colors.imgPlaceholder + '40', marginHorizontal: 18 },
 
   logoutBtn: {
     marginTop: 28, borderWidth: 2, borderColor: '#EF4444',
@@ -324,12 +323,12 @@ const styles = StyleSheet.create({
   },
   logoutText: { color: '#EF4444', fontWeight: '900', fontSize: 16, letterSpacing: 2 },
 
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
-  modalBox: { backgroundColor: colors.background, borderRadius: 20, padding: 24, width: '85%' },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center' },
+  modalBox: { backgroundColor: colors.cardBg, borderRadius: 20, padding: 24, width: '85%' },
   modalTitle: { fontSize: 18, fontWeight: '900', color: colors.text, marginBottom: 16 },
   modalInput: {
-    borderWidth: 1.5, borderColor: '#B8B0BC', borderRadius: 12,
-    padding: 12, fontSize: 15, backgroundColor: colors.white,
+    borderWidth: 1.5, borderColor: colors.inputBorder, borderRadius: 12,
+    padding: 12, fontSize: 15, backgroundColor: colors.inputBg, color: colors.text,
   },
   modalBtns: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 20 },
   modalCancel: { paddingVertical: 10, paddingHorizontal: 18 },
