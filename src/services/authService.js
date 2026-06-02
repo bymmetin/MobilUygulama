@@ -87,8 +87,17 @@ export const logout = async () => {
 };
 
 export const getCurrentUser = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) return null;
-  const profile = await ensureProfile(session.user);
-  return buildUser(session.user, profile);
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) {
+      // Stale/geçersiz refresh token — oturumu temizle ve null dön
+      await supabase.auth.signOut({ scope: 'local' });
+      return null;
+    }
+    if (!session?.user) return null;
+    const profile = await ensureProfile(session.user);
+    return buildUser(session.user, profile);
+  } catch {
+    return null;
+  }
 };
