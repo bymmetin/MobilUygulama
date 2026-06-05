@@ -7,7 +7,8 @@ import DailyScreen from '../screens/DailyScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import LessonScreen from '../screens/LessonScreen';
 import ResultScreen from '../screens/ResultScreen';
-import { colors } from '../config/theme';
+import SettingsScreen from '../screens/SettingsScreen';
+import { useTheme } from '../context/ThemeContext';
 
 import HomeIcon from '../../assets/tab-home.svg';
 import LeaguesIcon from '../../assets/tab-leagues.svg';
@@ -35,6 +36,7 @@ function TabIcon({ name, focused }) {
 }
 
 function HomeTabs() {
+  const { colors } = useTheme();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -46,6 +48,7 @@ function HomeTabs() {
           height: 72,
           paddingTop: 8,
           paddingBottom: 8,
+          elevation: 0,
         },
         tabBarIcon: ({ focused }) => (
           <TabIcon name={route.name} focused={focused} />
@@ -66,6 +69,7 @@ export default function MainStack() {
       <Stack.Screen name="HomeTabs" component={HomeTabs} />
       <Stack.Screen name="Lesson" component={LessonScreen} />
       <Stack.Screen name="Result" component={ResultScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
 }

@@ -29,7 +29,8 @@ const cacheQuestions = async (db, questions) => {
          correct_answer, image_url, audio_url, extra_data)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [q.id, q.lesson_id, q.question_text, q.question_type ?? 'multiple_choice',
-       q.option_a, q.option_b, q.option_c, q.option_d, q.correct_answer,
+       q.option_a ?? null, q.option_b ?? null, q.option_c ?? null, q.option_d ?? null,
+       q.correct_answer ?? '',   // bilgi kartlarında correct_answer boş olabilir
        q.image_url ?? null, q.audio_url ?? null, q.extra_data ?? null]
     );
   }
@@ -63,9 +64,10 @@ export const getLessonsByTopic = async (topicId) => {
       .eq('topic_id', topicId)
       .order('order_num');
     if (error) throw error;
-    if (!data || data.length === 0) throw new Error('empty');
+    // Boş dizi geçerli — ünite henüz aşamasız olabilir
+    if (!data) return [];
     const db = await getDB();
-    await cacheLessons(db, data);
+    if (data.length > 0) await cacheLessons(db, data);
     return data;
   } catch (e) {
     console.warn('[Supabase] getLessonsByTopic hata, SQLite cache kullanılıyor:', e.message);
@@ -82,7 +84,8 @@ export const getQuestionsByLesson = async (lessonId) => {
     const { data, error } = await supabase
       .from('questions')
       .select('*')
-      .eq('lesson_id', lessonId);
+      .eq('lesson_id', lessonId)
+      .order('id');                          // ← sıralı gelsin
     if (error) throw error;
     if (!data || data.length === 0) throw new Error('empty');
     getDB().then(db => cacheQuestions(db, data)).catch(e =>
@@ -92,6 +95,32 @@ export const getQuestionsByLesson = async (lessonId) => {
   } catch (e) {
     console.warn('[Supabase] getQuestionsByLesson hata:', e.message);
     const db = await getDB();
-    return db.getAllAsync('SELECT * FROM questions WHERE lesson_id = ?', [lessonId]);
+    return db.getAllAsync(
+      'SELECT * FROM questions WHERE lesson_id = ? ORDER BY id',
+      [lessonId]
+    );
+  }
+};
+
+// Önceki aşamadan rastgele 1 cevaplanabilir soru
+export const getRandomAnswerableQuestion = async (lessonId) => {
+  try {
+    const { data, error } = await supabase
+      .from('questions')
+      .select('*')
+      .eq('lesson_id', lessonId)
+      .not('option_a', 'is', null)
+      .order('id');
+    if (error) throw error;
+    if (!data || data.length === 0) return null;
+    return data[Math.floor(Math.random() * data.length)];
+  } catch (e) {
+    const db = await getDB();
+    const rows = await db.getAllAsync(
+      'SELECT * FROM questions WHERE lesson_id = ? AND option_a IS NOT NULL ORDER BY id',
+      [lessonId]
+    );
+    if (!rows || rows.length === 0) return null;
+    return rows[Math.floor(Math.random() * rows.length)];
   }
 };

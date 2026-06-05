@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors, fonts } from '../config/theme';
+import { fonts } from '../config/theme';
+import { useTheme } from '../context/ThemeContext';
 
 export default function QuestionFillBlank({ question, onAnswered }) {
+  const { colors } = useTheme();
   const [selectedIdx, setSelectedIdx] = useState(null);
   const [checked, setChecked] = useState(false);
 
@@ -29,6 +31,8 @@ export default function QuestionFillBlank({ question, onAnswered }) {
     setChecked(true);
     onAnswered(selectedIdx === correctIdx);
   };
+
+  const s = makeStyles(colors);
 
   return (
     <View style={s.container}>
@@ -86,10 +90,10 @@ export default function QuestionFillBlank({ question, onAnswered }) {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (c) => StyleSheet.create({
   container: { flex: 1 },
   sentenceBox: {
-    backgroundColor: '#fff',
+    backgroundColor: c.white,
     borderRadius: 16,
     padding: 20,
     marginBottom: 28,
@@ -102,7 +106,7 @@ const s = StyleSheet.create({
   sentenceText: {
     fontFamily: fonts.bold,
     fontSize: 18,
-    color: '#111827',
+    color: c.text,
     lineHeight: 32,
     flexWrap: 'wrap',
   },
@@ -113,20 +117,20 @@ const s = StyleSheet.create({
     letterSpacing: 1,
   },
   blankFilled: {
-    borderBottomColor: colors.primary,
-    color: colors.primary,
-    backgroundColor: '#EEF2FF',
+    borderBottomColor: c.primary,
+    color: c.primary,
+    backgroundColor: c.inputBg,
     borderRadius: 6,
   },
   blankCorrect: {
     borderBottomColor: '#10B981',
-    color: '#065F46',
-    backgroundColor: '#D1FAE5',
+    color: c.correctText,
+    backgroundColor: c.correct,
   },
   blankWrong: {
     borderBottomColor: '#EF4444',
-    color: '#991B1B',
-    backgroundColor: '#FEE2E2',
+    color: c.wrongText,
+    backgroundColor: c.wrong,
   },
   wordGrid: {
     flexDirection: 'row',
@@ -137,11 +141,11 @@ const s = StyleSheet.create({
   },
   wordBox: {
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: c.inputBorder,
     borderRadius: 12,
     paddingHorizontal: 20,
     paddingVertical: 14,
-    backgroundColor: '#fff',
+    backgroundColor: c.white,
     shadowColor: '#000',
     shadowOpacity: 0.06,
     shadowRadius: 4,
@@ -149,28 +153,28 @@ const s = StyleSheet.create({
     elevation: 2,
   },
   wordBoxSelected: {
-    borderColor: colors.primary,
-    backgroundColor: '#EEF2FF',
+    borderColor: c.primary,
+    backgroundColor: c.inputBg,
   },
   wordBoxCorrect: {
     borderColor: '#10B981',
-    backgroundColor: '#D1FAE5',
+    backgroundColor: c.correct,
   },
   wordBoxWrong: {
     borderColor: '#EF4444',
-    backgroundColor: '#FEE2E2',
+    backgroundColor: c.wrong,
   },
   wordText: {
     fontFamily: fonts.bold,
     fontSize: 15,
-    color: '#111827',
+    color: c.text,
   },
   checkBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 50,
     padding: 16,
     alignItems: 'center',
-    shadowColor: colors.primaryDark,
+    shadowColor: c.primaryDark,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 0,

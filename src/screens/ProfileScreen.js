@@ -1,20 +1,25 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getCurrentUser, logout } from '../services/authService';
+import { useFocusEffect } from '@react-navigation/native';
+import { getCurrentUser } from '../services/authService';
 import { getUserProgress } from '../services/contentService';
-import { colors } from '../config/theme';
+import { useTheme } from '../context/ThemeContext';
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }) {
+  const { colors } = useTheme();
   const [user, setUser] = useState(null);
   const [completedCount, setCompletedCount] = useState(0);
   const [avgScore, setAvgScore] = useState(0);
 
-  useEffect(() => {
-    const load = async () => {
-      const u = await getCurrentUser();
-      setUser(u);
-      if (u) {
+  useFocusEffect(
+    useCallback(() => {
+      const load = async () => {
+        // getCurrentUser zaten profiles tablosundan taze XP/streak çeker
+        const u = await getCurrentUser();
+        if (!u) return;
+        setUser(u);
+
         const progress = await getUserProgress(u.id);
         const completed = progress.filter(p => p.completed);
         setCompletedCount(completed.length);
@@ -22,17 +27,30 @@ export default function ProfileScreen() {
           const total = completed.reduce((s, p) => s + p.score, 0);
           setAvgScore(Math.round(total / completed.length));
         }
-      }
-    };
-    load();
-  }, []);
+      };
+      load();
+    }, [])
+  );
 
   const initials = user?.username?.slice(0, 2).toUpperCase() ?? '??';
   const level = Math.floor((user?.xp ?? 0) / 100) + 1;
   const xpInLevel = (user?.xp ?? 0) % 100;
 
+  const styles = makeStyles(colors);
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      {/* Ayarlar butonu */}
+      <View style={styles.topBar}>
+        <TouchableOpacity
+          style={styles.settingsBtn}
+          onPress={() => navigation.navigate('Settings')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.settingsIcon}>⚙</Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView contentContainerStyle={styles.scroll}>
 
         {/* Üst satır: avatar + bilgiler başlığı */}
@@ -97,18 +115,31 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-          <Text style={styles.logoutText}>Çıkış Yap</Text>
-        </TouchableOpacity>
-
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: 20, paddingTop: 24, paddingBottom: 40 },
+const makeStyles = (c) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
+  topBar: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, paddingTop: 10 },
+  settingsBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: c.cardBg,
+    // iOS gölge
+    shadowColor: '#3A2A4A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.22,
+    shadowRadius: 4,
+    // Android gölge
+    elevation: 5,
+  },
+  settingsIcon: { fontSize: 22, color: c.textMuted },
+  scroll: { padding: 20, paddingTop: 8, paddingBottom: 40 },
 
   topRow: {
     flexDirection: 'row',
@@ -116,44 +147,67 @@ const styles = StyleSheet.create({
     gap: 14,
     marginBottom: 24,
   },
+  // Avatar: solid arka plan + elevation → Android dairesel gölge
   avatar: {
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: colors.cardBg,
+    backgroundColor: c.cardBg,
     justifyContent: 'center',
     alignItems: 'center',
     flexShrink: 0,
+    elevation: 12,
+    shadowColor: '#4A4060',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 7,
   },
-  avatarText: { fontSize: 30, fontWeight: '900', color: '#7A7080' },
+  avatarText: { fontSize: 32, fontWeight: '900', color: c.text },
   infoBox: {
     flex: 1,
-    backgroundColor: colors.cardBg,
+    backgroundColor: c.cardBg,
     borderRadius: 20,
     paddingHorizontal: 18,
-    paddingVertical: 14,
+    paddingTop: 14,
+    paddingBottom: 9,
     justifyContent: 'center',
     minHeight: 90,
+    borderBottomWidth: 5,
+    borderBottomColor: '#A098A8',
+    elevation: 4,
+    shadowColor: '#A098A8',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
   infoBoxTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#7A7080',
+    color: c.textMuted,
     letterSpacing: 1,
   },
-  infoBoxName: { fontSize: 15, fontWeight: '700', color: '#5A5060', marginTop: 4 },
-  infoBoxEmail: { fontSize: 12, color: '#9A9098', marginTop: 2 },
+  infoBoxName: { fontSize: 15, fontWeight: '700', color: c.text, marginTop: 4 },
+  infoBoxEmail: { fontSize: 12, color: c.textMuted, marginTop: 2 },
 
   card: {
-    backgroundColor: colors.cardBg,
+    backgroundColor: c.cardBg,
     borderRadius: 20,
-    padding: 22,
+    paddingHorizontal: 22,
+    paddingTop: 22,
+    paddingBottom: 17,
     marginBottom: 20,
+    borderBottomWidth: 6,
+    borderBottomColor: '#A098A8',
+    elevation: 4,
+    shadowColor: '#A098A8',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#7A7080',
+    color: c.textMuted,
     letterSpacing: 1,
     marginBottom: 18,
     textAlign: 'center',
@@ -164,36 +218,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   stat: { alignItems: 'center', flex: 1 },
-  statNum: { fontSize: 26, fontWeight: '900', color: '#5A5060' },
+  statNum: { fontSize: 26, fontWeight: '900', color: c.text },
   statLabel: {
     fontSize: 11,
-    color: '#9A9098',
+    color: c.textMuted,
     marginTop: 6,
     textAlign: 'center',
     lineHeight: 16,
   },
-  divider: { width: 1, height: 44, backgroundColor: '#B8B0BC' },
+  divider: { width: 1, height: 44, backgroundColor: c.imgPlaceholder },
 
   xpTrack: {
     marginTop: 16,
     height: 8,
-    backgroundColor: '#B8B0BC',
+    backgroundColor: c.imgPlaceholder,
     borderRadius: 4,
     overflow: 'hidden',
   },
   xpFill: {
     height: 8,
-    backgroundColor: colors.magenta,
+    backgroundColor: c.magenta,
     borderRadius: 4,
   },
 
-  logoutBtn: {
-    borderWidth: 2,
-    borderColor: '#EF4444',
-    borderRadius: 16,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  logoutText: { color: '#EF4444', fontWeight: '700', fontSize: 16 },
 });

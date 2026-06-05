@@ -1,88 +1,174 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   Image, Dimensions, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getQuestionsByLesson } from '../services/dataService';
-import { saveProgress, addXP } from '../services/contentService';
+import { getQuestionsByLesson, getRandomAnswerableQuestion } from '../services/dataService';
+import { saveProgress, addXP, updateStreak } from '../services/contentService';
 import { getCurrentUser } from '../services/authService';
+import { playSound } from '../services/soundService';
 import QuestionMatching from '../components/QuestionMatching';
 import QuestionFillBlank from '../components/QuestionFillBlank';
-import { colors } from '../config/theme';
+import { useTheme } from '../context/ThemeContext';
 
 const { width: W } = Dimensions.get('window');
-const MAX_LIVES = 3;
-const XP_PER_CORRECT = 10;
+const MAX_LIVES          = 3;
+const XP_PER_CORRECT     = 10;
+const XP_PER_CORRECT_RETRY = 5;
+
+// Bilgi kartı mı? (şık yok → cevaplanamaz kart)
+const isInfoCard = (q) =>
+  q?.question_type === 'multiple_choice' && !q?.option_a;
+
+// Bilgi → Soru → Bilgi → Soru alternasyonu (önceki aşama sorusu en sona)
+const interleaveInfoAndQuiz = (arr) => {
+  const infos    = arr.filter(q => isInfoCard(q) && !q._isPrevStage);
+  const quizzes  = arr.filter(q => !isInfoCard(q) && !q._isPrevStage);
+  const prevStg  = arr.find(q => q._isPrevStage);
+  const result   = [];
+  const max = Math.max(infos.length, quizzes.length);
+  for (let i = 0; i < max; i++) {
+    if (infos[i])   result.push(infos[i]);
+    if (quizzes[i]) result.push(quizzes[i]);
+  }
+  if (prevStg) result.push(prevStg);
+  return result;
+};
 
 export default function LessonScreen({ route, navigation }) {
-  const { lesson } = route.params;
-  const [questions, setQuestions] = useState([]);
-  const [index, setIndex] = useState(0);
-  const [correct, setCorrect] = useState(0);
-  const [lives, setLives] = useState(MAX_LIVES);
-  const [user, setUser] = useState(null);
+  const { colors } = useTheme();
+  const { lesson }    = route.params;
+  const prevLesson    = route.params?.prevLesson    ?? null;
+  const questionIds   = route.params?.questionIds   ?? null;
+  const isRetry       = route.params?.isRetry       ?? false;
+  const originalTotal = route.params?.originalTotal ?? null;
 
-  // Cevap durumu
-  const [answered, setAnswered] = useState(false);
-  const [lastCorrect, setLastCorrect] = useState(false);
+  const [questions,  setQuestions]  = useState([]);
+  const [index,      setIndex]      = useState(0);
+  const [correct,    setCorrect]    = useState(0);
+  const [lives,      setLives]      = useState(MAX_LIVES);
+  const [user,       setUser]       = useState(null);
+  const [answered,   setAnswered]   = useState(false);
+  const [lastCorrect,setLastCorrect]= useState(false);
+  const [selected,   setSelected]   = useState(null);
+  const [finishing,  setFinishing]  = useState(false);
 
-  // Çoktan seçmeli için seçilen şık
-  const [selected, setSelected] = useState(null);
-
-  // Bitiş tetiklendi mi
-  const [finishing, setFinishing] = useState(false);
+  const wrongIdsRef = useRef([]);
 
   useEffect(() => {
-    getQuestionsByLesson(lesson.id).then(setQuestions);
+    const load = async () => {
+      // Soruları ID sırasıyla çek (bilgi kartı → soru sırası korunuyor)
+      let allQs = await getQuestionsByLesson(lesson.id);
+
+      // Önceki aşamadan 1 rastgele soru ekle (retry modunda ekleme)
+      if (prevLesson && !isRetry) {
+        const prevQ = await getRandomAnswerableQuestion(prevLesson.id);
+        if (prevQ) {
+          allQs = [
+            ...allQs,
+            { ...prevQ, _isPrevStage: true, _prevTitle: prevLesson.title },
+          ];
+        }
+      }
+
+      if (questionIds && questionIds.length > 0) {
+        // Retry: yanlış quiz soruları + onların eşlendiği bilgi kartları
+        const rawInfos   = allQs.filter(q => isInfoCard(q) && !q._isPrevStage);
+        const rawQuizzes = allQs.filter(q => !isInfoCard(q) && !q._isPrevStage);
+        const retryQuizzes = rawQuizzes.filter(q => questionIds.includes(q.id));
+        // Her yanlış sorunun sıra indeksini bul, aynı indeksteki bilgi kartını al
+        const retryInfos = retryQuizzes
+          .map(q => rawInfos[rawQuizzes.indexOf(q)])
+          .filter(Boolean);
+        setQuestions(interleaveInfoAndQuiz([...retryInfos, ...retryQuizzes]));
+      } else {
+        setQuestions(interleaveInfoAndQuiz(allQs));
+      }
+    };
+    load();
     getCurrentUser().then(setUser);
   }, []);
 
-  const question = questions[index];
-  const isLast = index === questions.length - 1;
+  const question     = questions[index];
+  const isLast       = index === questions.length - 1;
   const questionType = question?.question_type ?? 'multiple_choice';
-  const isInfoCard = questionType === 'multiple_choice' && !question?.option_a;
+  const infoCard     = isInfoCard(question);
+  const isPrevStage  = !!question?._isPrevStage;
 
-  const finishLesson = async (finalCorrect) => {
+  // Cevaplanabilir sorular (bilgi kartı ve önceki aşama sorusu hariç)
+  const answerableCount = questions.filter(
+    q => !isInfoCard(q) && !q._isPrevStage
+  ).length;
+
+  const finishLesson = async (finalCorrect, explicitWrongIds) => {
     if (finishing) return;
     setFinishing(true);
-    const score = questions.length > 0
-      ? Math.round((finalCorrect / questions.length) * 100)
-      : 0;
-    const earnedXP = finalCorrect * XP_PER_CORRECT;
-    // DB hatası navigation'ı bloke etmesin diye try-catch
+
+    // allRetryCorrect: sadece belirli yanlış soruları tekrar modunda (questionIds varsa) hepsini doğru yaptıysa
+    const allRetryCorrect = isRetry
+      && Array.isArray(questionIds)
+      && questionIds.length > 0
+      && finalCorrect === questionIds.length;
+    const finalWrongIds    = explicitWrongIds ?? wrongIdsRef.current;
+    const wrongIdsToSave   = allRetryCorrect ? [] : finalWrongIds;
+
+    // Skor — bilgi kartları ve önceki aşama sorusu sayılmaz
+    const scoreBase    = answerableCount || 1;
+    const displayTotal = allRetryCorrect
+      ? (originalTotal ?? scoreBase)
+      : scoreBase;
+    const displayCorrect = allRetryCorrect ? displayTotal : finalCorrect;
+    const score = allRetryCorrect
+      ? 100
+      : Math.round((finalCorrect / scoreBase) * 100);
+
+    const xpRate   = isRetry ? XP_PER_CORRECT_RETRY : XP_PER_CORRECT;
+    const earnedXP = finalCorrect * xpRate;
+
     try {
       if (user) {
-        await saveProgress(user.id, lesson.id, score, finalCorrect, questions.length, earnedXP);
+        await saveProgress(
+          user.id, lesson.id, score,
+          displayCorrect, displayTotal, earnedXP,
+          wrongIdsToSave
+        );
         await addXP(user.id, earnedXP);
+        await updateStreak(user.id);
       }
     } catch (e) {
-      console.warn('finishLesson DB hatası (navigation devam ediyor):', e.message);
+      console.warn('finishLesson DB hatası:', e.message);
     }
+
+    if (score >= 50) playSound('complete'); // ders geçilince ses
     navigation.replace('Result', {
-      lesson, score, correct: finalCorrect, total: questions.length, earnedXP,
+      lesson, score, correct: displayCorrect, total: displayTotal, earnedXP,
     });
   };
 
-  // Cevap callback
   const handleAnswered = (isCorrect) => {
     if (answered) return;
     setAnswered(true);
     setLastCorrect(isCorrect);
+    playSound(isCorrect ? 'correct' : 'wrong'); // ses efekti
+
+    // Önceki aşama sorusu: skoru / canı etkileme, sadece geri bildirim göster
+    if (isPrevStage) return;
+
     const newCorrect = isCorrect ? correct + 1 : correct;
     if (isCorrect) {
       setCorrect(newCorrect);
     } else {
+      wrongIdsRef.current = [...wrongIdsRef.current, question.id];
       const newLives = Math.max(0, lives - 1);
       setLives(newLives);
-      // Can bitti → direkt kaybetme ekranına git
       if (newLives === 0) {
-        setTimeout(() => finishLesson(newCorrect), 700);
+        const captured = wrongIdsRef.current;
+        setTimeout(() => finishLesson(newCorrect, captured), 700);
       }
     }
   };
 
-  // Sonraki / bitir
   const handleNext = () => {
     if (isLast) {
       finishLesson(correct);
@@ -100,6 +186,25 @@ export default function LessonScreen({ route, navigation }) {
     handleAnswered(key === question.correct_answer);
   };
 
+  // Şıkları her soru için rastgele sırala — hooks erken return'den ÖNCE olmalı
+  const OPTIONS = useMemo(() => {
+    if (!question) return [];
+    const base = [
+      { key: 'A', value: question.option_a },
+      { key: 'B', value: question.option_b },
+      { key: 'C', value: question.option_c },
+      { key: 'D', value: question.option_d },
+    ].filter(o => o.value);
+    const arr = [...base];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }, [question?.id]);
+
+  const styles = makeStyles(colors);
+
   if (!question) {
     return (
       <SafeAreaView style={styles.safe}>
@@ -113,18 +218,11 @@ export default function LessonScreen({ route, navigation }) {
     );
   }
 
-  const hasImage = !!question.image_url;
-  const showBottomPanel = answered || isInfoCard;
-  const panelBg = isInfoCard
+  const hasImage        = !!question.image_url;
+  const showBottomPanel = answered || infoCard;
+  const panelBg = infoCard
     ? colors.bottomPanel
     : lastCorrect ? '#00C853' : '#FF2020';
-
-  const OPTIONS = [
-    { key: 'A', value: question.option_a },
-    { key: 'B', value: question.option_b },
-    { key: 'C', value: question.option_c },
-    { key: 'D', value: question.option_d },
-  ].filter(o => o.value);
 
   return (
     <View style={styles.safe}>
@@ -142,7 +240,6 @@ export default function LessonScreen({ route, navigation }) {
           </View>
         </View>
 
-        {/* Duolingo tarzı progress bar */}
         {questions.length > 0 && (
           <View style={styles.progressTrack}>
             <View
@@ -165,9 +262,17 @@ export default function LessonScreen({ route, navigation }) {
         contentContainerStyle={styles.contentInner}
         showsVerticalScrollIndicator={false}
       >
+        {/* Önceki aşama rozeti */}
+        {isPrevStage && (
+          <View style={styles.prevStageBadge}>
+            <Text style={styles.prevStageBadgeText}>
+              🔄  {question._prevTitle} tekrarı
+            </Text>
+          </View>
+        )}
+
         {questionType === 'multiple_choice' && (
           <>
-            {/* Resim sadece varsa */}
             {hasImage && (
               <Image
                 source={{ uri: question.image_url }}
@@ -178,28 +283,28 @@ export default function LessonScreen({ route, navigation }) {
 
             <Text style={[
               styles.questionText,
-              isInfoCard && styles.infoText,
-              !hasImage && !isInfoCard && styles.questionTextNoImage,
+              infoCard && styles.infoText,
+              !hasImage && !infoCard && styles.questionTextNoImage,
             ]}>
               {question.question_text}
             </Text>
 
-            {!isInfoCard && (
+            {!infoCard && (
               <View style={styles.optionsGrid}>
                 {OPTIONS.map(({ key, value }) => {
-                  const isSelected = selected === key;
+                  const isSelected   = selected === key;
                   const isCorrectOpt = question.correct_answer === key;
-                  let bg = colors.magentaBtn;
+                  let bg     = colors.magentaBtn;
                   let shadow = colors.magentaBtnShadow;
                   if (answered) {
-                    if (isCorrectOpt) { bg = '#00BB00'; shadow = '#007700'; }
-                    else if (isSelected) { bg = '#CC2020'; shadow = '#880000'; }
-                    else { bg = '#CC00AA'; shadow = '#880070'; }
+                    if (isCorrectOpt)    { bg = colors.optionCorrect; shadow = colors.optionCorrectShadow; }
+                    else if (isSelected) { bg = colors.optionWrong;   shadow = colors.optionWrongShadow; }
+                    else                 { bg = colors.optionOther;   shadow = colors.optionOtherShadow; }
                   }
                   return (
                     <TouchableOpacity
                       key={key}
-                      style={[styles.optionBtn, { backgroundColor: bg, shadowColor: shadow }]}
+                      style={[styles.optionBtn, { backgroundColor: bg, shadowColor: shadow, borderBottomColor: shadow }]}
                       onPress={() => handleSelectMC(key)}
                       disabled={answered}
                       activeOpacity={0.85}
@@ -229,28 +334,33 @@ export default function LessonScreen({ route, navigation }) {
         )}
       </ScrollView>
 
-      {/* Alt panel — yalnızca cevap verildikten sonra (bilgi kartları hariç) */}
+      {/* Alt panel */}
       {showBottomPanel && (
         <SafeAreaView edges={['bottom']} style={[styles.bottomPanelWrap, { backgroundColor: panelBg }]}>
-          {answered && !isInfoCard && (
+          {answered && !infoCard && (
             <View style={styles.feedbackRow}>
               <Text style={styles.feedbackIcon}>{lastCorrect ? '✓' : '✗'}</Text>
               <Text style={styles.feedbackText}>
-                {lastCorrect ? 'Doğru!' : 'Yanlış'}
+                {lastCorrect
+                  ? (isPrevStage ? 'Harika, hatırladın!' : 'Doğru!')
+                  : (isPrevStage ? 'Unutmuşsun!' : 'Yanlış')}
               </Text>
             </View>
           )}
           <TouchableOpacity
             style={[
               styles.continueBtn,
-              { backgroundColor: isInfoCard ? colors.btnGreen : colors.white },
+              {
+                backgroundColor: infoCard ? colors.btnGreen : colors.white,
+                borderBottomColor: infoCard ? colors.btnGreenDark : 'rgba(0,0,0,0.15)',
+              },
             ]}
             onPress={handleNext}
             activeOpacity={0.85}
           >
             <Text style={[
               styles.continueBtnText,
-              { color: isInfoCard ? colors.white : panelBg },
+              { color: infoCard ? colors.white : panelBg },
             ]}>
               {isLast ? 'BİTİR' : 'DEVAM'}
             </Text>
@@ -261,8 +371,8 @@ export default function LessonScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+const makeStyles = (c) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
 
   progressTrack: {
     height: 10,
@@ -274,7 +384,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: 10,
-    backgroundColor: colors.btnGreen,
+    backgroundColor: c.btnGreen,
     borderRadius: 5,
     minWidth: 10,
   },
@@ -287,13 +397,30 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   closeBtn: { padding: 6 },
-  closeBtnText: { fontSize: 22, color: '#888', fontWeight: 'bold' },
+  closeBtnText: { fontSize: 22, color: c.textMuted, fontWeight: 'bold' },
   livesRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   heartEmoji: { fontSize: 22 },
-  livesLabel: { fontSize: 13, fontWeight: '700', color: '#555' },
+  livesLabel: { fontSize: 13, fontWeight: '700', color: c.text },
 
   content: { flex: 1 },
   contentInner: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24 },
+
+  // Önceki aşama rozeti
+  prevStageBadge: {
+    alignSelf: 'center',
+    backgroundColor: '#EDE0FF',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#C8A8FF',
+  },
+  prevStageBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#7030A0',
+  },
 
   image: {
     width: '100%',
@@ -303,11 +430,21 @@ const styles = StyleSheet.create({
   },
 
   questionText: {
-    fontSize: 20, fontWeight: '800', color: '#4A4050',
+    fontSize: 20, fontWeight: '800', color: c.text,
     textAlign: 'center', marginBottom: 24, lineHeight: 28,
   },
   questionTextNoImage: { fontSize: 24, marginTop: 24, marginBottom: 32, lineHeight: 34 },
-  infoText: { fontSize: 32, lineHeight: 44, color: '#3A3040' },
+
+  // Bilgi kartı — font küçük ve okunabilir
+  infoText: {
+    fontSize: 17,
+    fontWeight: '600',
+    lineHeight: 26,
+    color: c.text,
+    textAlign: 'left',
+    marginTop: 8,
+    marginBottom: 8,
+  },
 
   optionsGrid: {
     flexDirection: 'row',
@@ -318,20 +455,19 @@ const styles = StyleSheet.create({
   optionBtn: {
     width: (W - 44) / 2,
     minHeight: 76,
-    paddingVertical: 14,
+    paddingTop: 14,
+    paddingBottom: 10,
     paddingHorizontal: 12,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 6,
+    borderBottomWidth: 6,
+    elevation: 3,
   },
   optionText: {
     fontSize: 15,
     fontWeight: '800',
-    color: colors.white,
+    color: c.white,
     textAlign: 'center',
     lineHeight: 19,
   },
@@ -349,30 +485,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  feedbackIcon: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.white,
-  },
-  feedbackText: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: colors.white,
-    letterSpacing: 1,
-  },
+  feedbackIcon: { fontSize: 28, fontWeight: 'bold', color: c.white },
+  feedbackText: { fontSize: 22, fontWeight: '900', color: c.white, letterSpacing: 1 },
 
   continueBtn: {
     borderRadius: 16,
-    paddingVertical: 18,
+    paddingTop: 18,
+    paddingBottom: 14,
     alignItems: 'center',
+    borderBottomWidth: 5,
+    elevation: 3,
   },
-  continueBtnText: {
-    fontSize: 22,
-    fontWeight: '900',
-    letterSpacing: 3,
-  },
+  continueBtnText: { fontSize: 22, fontWeight: '900', letterSpacing: 3 },
 
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  emptyText: { fontSize: 16, color: '#6B7280', textAlign: 'center', marginBottom: 20 },
-  backLink: { fontSize: 16, color: colors.primary, fontWeight: '600' },
+  emptyText: { fontSize: 16, color: c.textMuted, textAlign: 'center', marginBottom: 20 },
+  backLink: { fontSize: 16, color: c.primary, fontWeight: '600' },
 });

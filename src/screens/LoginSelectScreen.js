@@ -5,7 +5,7 @@ import { colors, fonts } from '../config/theme';
 function ShadowBtn({ bg, shadow, onPress, children }) {
   return (
     <TouchableOpacity
-      style={[styles.btn, { backgroundColor: bg, shadowColor: shadow }]}
+      style={[styles.btn, { backgroundColor: bg, borderBottomColor: shadow }]}
       onPress={onPress}
       activeOpacity={0.85}
     >
@@ -88,14 +88,13 @@ const styles = StyleSheet.create({
   buttons: { gap: 28 },
   btn: {
     borderRadius: 50,
-    paddingVertical: 22,
+    paddingTop: 22,
+    paddingBottom: 16,
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOffset: { width: 0, height: 7 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 7,
+    borderBottomWidth: 7,
+    elevation: 3,
   },
   btnText: {
     fontFamily: fonts.bold,

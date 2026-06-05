@@ -1,15 +1,19 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, fonts } from '../config/theme';
+import { fonts } from '../config/theme';
+import { useTheme } from '../context/ThemeContext';
 import TacSvg from '../../assets/tac.svg';
 import KurukafaSvg from '../../assets/kurukafa.svg';
 
 export default function ResultScreen({ route, navigation }) {
+  const { colors } = useTheme();
   const { lesson, score, correct, total, earnedXP, review } = route.params;
   const passed = score >= 50;
 
   const goHome = () => navigation.navigate('HomeTabs');
-  const restart = () => navigation.replace('Lesson', { lesson });
+  const restart = () => navigation.replace('Lesson', { lesson, isRetry: true });
+
+  const styles = makeStyles(colors);
 
   if (passed) {
     return (
@@ -45,6 +49,7 @@ export default function ResultScreen({ route, navigation }) {
 
           {review ? (
             <>
+              <Text style={styles.retryNote}>Tekrar oynamada her doğru +5 XP verir</Text>
               <TouchableOpacity style={styles.winBtn} onPress={restart} activeOpacity={0.85}>
                 <Text style={styles.devamText}>TEKRARDAN BAŞLA</Text>
               </TouchableOpacity>
@@ -97,6 +102,7 @@ export default function ResultScreen({ route, navigation }) {
 
         {review ? (
           <>
+            <Text style={styles.retryNote}>Tekrar oynamada her doğru +5 XP verir</Text>
             <TouchableOpacity style={styles.loseBtn} onPress={restart} activeOpacity={0.85}>
               <Text style={styles.devamText}>TEKRARDAN BAŞLA</Text>
             </TouchableOpacity>
@@ -115,8 +121,8 @@ export default function ResultScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+const makeStyles = (c) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
   container: {
     flex: 1,
     alignItems: 'center',
@@ -138,7 +144,7 @@ const styles = StyleSheet.create({
   winLabel: {
     fontSize: 26,
     fontWeight: '900',
-    color: '#C8B000',
+    color: c.winColor,
     letterSpacing: 6,
     marginTop: 12,
     fontFamily: fonts.poppinsExtraBold,
@@ -146,13 +152,13 @@ const styles = StyleSheet.create({
 
   // ── Kaybetme ──
   xRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: -8 },
-  xStar: { fontSize: 24, color: '#FF2020' },
+  xStar: { fontSize: 24, color: c.loseColor },
   xStarBig: { fontSize: 40 },
   skullEmoji: { fontSize: 110 },
   loseLabel: {
     fontSize: 32,
     fontWeight: '900',
-    color: '#FF2020',
+    color: c.loseColor,
     letterSpacing: 3,
     marginTop: 8,
     fontFamily: fonts.poppinsExtraBold,
@@ -162,56 +168,58 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#9B8FA0',
+    color: c.textMuted,
     letterSpacing: 2,
     marginBottom: 16,
     fontFamily: fonts.poppinsExtraBold,
   },
   statsRow: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.5)',
+    backgroundColor: c.statRowBg,
     borderRadius: 20,
-    paddingVertical: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
     paddingHorizontal: 16,
     width: '100%',
     justifyContent: 'space-around',
     alignItems: 'center',
+    borderBottomWidth: 5,
+    borderBottomColor: c.statRowDivider,
+    elevation: 4,
   },
   stat: { alignItems: 'center' },
-  statNum: { fontSize: 26, fontWeight: '900', color: '#3A3040' },
-  statLabel: { fontSize: 12, color: '#9A9098', marginTop: 4, fontWeight: '600' },
-  statDivider: { width: 1, height: 36, backgroundColor: '#C8C0CC' },
+  statNum: { fontSize: 26, fontWeight: '900', color: c.statRowText },
+  statLabel: { fontSize: 12, color: c.textMuted, marginTop: 4, fontWeight: '600' },
+  statDivider: { width: 1, height: 36, backgroundColor: c.statRowDivider },
 
   spacer: { flex: 1 },
 
   winBtn: {
-    backgroundColor: colors.btnGreen,
+    backgroundColor: c.btnGreen,
     width: '100%',
-    paddingVertical: 22,
+    paddingTop: 22,
+    paddingBottom: 17,
     borderRadius: 20,
     alignItems: 'center',
-    shadowColor: colors.btnGreenDark,
-    shadowOffset: { width: 0, height: 7 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 7,
+    borderBottomWidth: 7,
+    borderBottomColor: c.btnGreenDark,
+    elevation: 3,
   },
   loseBtn: {
-    backgroundColor: '#FF2020',
+    backgroundColor: c.loseColor,
     width: '100%',
-    paddingVertical: 22,
+    paddingTop: 22,
+    paddingBottom: 17,
     borderRadius: 20,
     alignItems: 'center',
-    shadowColor: '#AA0000',
-    shadowOffset: { width: 0, height: 7 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 7,
+    borderBottomWidth: 7,
+    borderBottomColor: c.loseShadow,
+    elevation: 3,
   },
   devamText: {
     fontSize: 24,
     fontWeight: '900',
-    color: colors.white,
+    color: c.white,
     letterSpacing: 2,
     fontFamily: fonts.poppinsExtraBold,
   },
@@ -223,7 +231,14 @@ const styles = StyleSheet.create({
   secondaryBtnText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#7A6080',
+    color: c.textMuted,
     textDecorationLine: 'underline',
+  },
+  retryNote: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: c.textMuted,
+    marginBottom: 12,
+    textAlign: 'center',
   },
 });

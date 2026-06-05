@@ -5,20 +5,22 @@ import { useFocusEffect } from '@react-navigation/native';
 import { getTopics, getLessonsByTopic } from '../services/dataService';
 import { getUserProgress } from '../services/contentService';
 import { getCurrentUser } from '../services/authService';
-import { colors } from '../config/theme';
+import { fonts } from '../config/theme';
+import { useTheme } from '../context/ThemeContext';
 
 import MesaleSvg from '../../assets/mesale.svg';
 import KilitSvg from '../../assets/kilit.svg';
 
 const { width: W } = Dimensions.get('window');
-const COIN = 96;
-const STEP = 126;
-// Zigzag X pozisyonları: ekran genişliğinin yüzdesi olarak coin merkezi
-const ZIGZAG = [0.52, 0.34, 0.52, 0.68];
+const COIN    = 66;
+const STEP    = 96;
+const LABEL_W = COIN + 48;
+const ZIGZAG  = [0.50, 0.30, 0.50, 0.70];
 
 export default function HomeScreen({ navigation }) {
+  const { colors } = useTheme();
   const [topicsData, setTopicsData] = useState([]);
-  const [progressMap, setProgressMap] = useState({}); // lessonId -> { score, correct_count, total_count, earned_xp }
+  const [progressMap, setProgressMap] = useState({});
   const [user, setUser] = useState(null);
 
   useFocusEffect(
@@ -32,13 +34,11 @@ export default function HomeScreen({ navigation }) {
             lessons: await getLessonsByTopic(topic.id),
           }))
         );
-        setTopicsData(data);
+        setTopicsData(data.filter(({ lessons }) => lessons.length > 0));
         if (u) {
           const progress = await getUserProgress(u.id);
           const map = {};
-          for (const p of progress) {
-            map[p.lesson_id] = p;
-          }
+          for (const p of progress) map[p.lesson_id] = p;
           setProgressMap(map);
         }
       };
@@ -46,23 +46,26 @@ export default function HomeScreen({ navigation }) {
     }, [])
   );
 
+  // Her ünitenin İLK aşaması her zaman açık.
+  // Sonrakiler: önceki aşama %50+ geçilince açılır.
   const isUnlocked = (tIdx, lIdx) => {
-    if (tIdx === 0 && lIdx === 0) return true;
-    if (lIdx > 0) {
-      const prevLessonId = topicsData[tIdx]?.lessons[lIdx - 1]?.id;
-      return prevLessonId in progressMap;
-    }
-    const prev = topicsData[tIdx - 1];
-    if (!prev) return false;
-    const prevLastLessonId = prev.lessons[prev.lessons.length - 1]?.id;
-    return prevLastLessonId in progressMap;
+    if (lIdx === 0) return true;
+    const prevId = topicsData[tIdx]?.lessons[lIdx - 1]?.id;
+    return (progressMap[prevId]?.score ?? 0) >= 50;
   };
 
-const handleCoinPress = (lesson, unlocked) => {
+  const handleCoinPress = (lesson, unlocked, tIdx, lIdx) => {
     if (!unlocked) return;
+
+    // Önceki aşama → LessonScreen'e gönder (önceki ders sorusu için)
+    const prevLesson = lIdx > 0 ? topicsData[tIdx]?.lessons[lIdx - 1] : null;
+
     const p = progressMap[lesson.id];
-    if (p) {
-      // Daha önce çözülmüş — son sonucu göster, "Tekrardan başla" seçeneğiyle
+
+    if (!p) {
+      navigation.navigate('Lesson', { lesson, prevLesson });
+    } else if (p.score === 100) {
+      // Tamamlandı → sonuç ekranı (review modunda)
       navigation.navigate('Result', {
         lesson,
         score: p.score,
@@ -71,70 +74,111 @@ const handleCoinPress = (lesson, unlocked) => {
         earnedXP: p.earned_xp ?? 0,
         review: true,
       });
+    } else if (p.score >= 50) {
+      let wrongIds = [];
+      try { wrongIds = p.wrong_question_ids ? JSON.parse(p.wrong_question_ids) : []; } catch (_) {}
+      if (wrongIds.length > 0) {
+        navigation.navigate('Lesson', {
+          lesson,
+          prevLesson,
+          questionIds: wrongIds,
+          isRetry: true,
+          originalTotal: p.total_count ?? 0,
+        });
+      } else {
+        navigation.navigate('Lesson', { lesson, prevLesson });
+      }
     } else {
-      navigation.navigate('Lesson', { lesson });
+      navigation.navigate('Lesson', { lesson, prevLesson });
     }
   };
+
+  const styles = makeStyles(colors);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* Üst çubuk */}
       <View style={styles.topBar}>
-        <MesaleSvg width={32} height={32} />
+        <MesaleSvg width={28} height={28} />
         <Text style={styles.streakText}>{user?.streak ?? 0}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {topicsData.map(({ topic, lessons }, tIdx) => (
-          <View key={topic.id}>
-            {/* Ünite başlık kartı */}
-            <View style={styles.unitBanner}>
-              <Text style={styles.unitLabel}>ÜNİTE {tIdx + 1}:</Text>
-              <Text style={styles.unitTitle}>{topic.title}</Text>
-            </View>
+        {topicsData.map(({ topic, lessons }, tIdx) => {
+          const pathHeight = lessons.length * STEP + 24;
+          return (
+            <View key={topic.id} style={styles.unitBlock}>
+              {/* Ünite başlık kartı */}
+              <View style={styles.unitBanner}>
+                <Text style={styles.unitLabel}>ÜNİTE {tIdx + 1}</Text>
+                <Text style={styles.unitTitle}>{topic.title}</Text>
+              </View>
 
-            {/* Ders yolu — zigzag */}
-            <View style={{ height: lessons.length * STEP + COIN + 16, position: 'relative' }}>
-              {lessons.map((lesson, lIdx) => {
-                const unlocked = isUnlocked(tIdx, lIdx);
-                const progress = progressMap[lesson.id];
-                const isPerfect = progress?.score === 100;
-                const left = ZIGZAG[lIdx % ZIGZAG.length] * W - COIN / 2;
-                const top = lIdx * STEP;
-                const isGray = progress && !isPerfect; // tamamlandı ama mükemmel değil
+              {/* Aşama yolu — zigzag */}
+              <View style={{ height: pathHeight, position: 'relative', marginTop: 20 }}>
+                {lessons.map((lesson, lIdx) => {
+                  const unlocked    = isUnlocked(tIdx, lIdx);
+                  const progress    = progressMap[lesson.id];
+                  const score       = progress?.score ?? 0;
+                  const isCompleted = !!progress && score >= 50;
+                  const left = ZIGZAG[lIdx % ZIGZAG.length] * W - COIN / 2;
+                  const top  = lIdx * STEP;
 
-                return (
-                  <TouchableOpacity
-                    key={lesson.id}
-                    style={[styles.coin, { left, top }]}
-                    onPress={() => handleCoinPress(lesson, unlocked)}
-                    activeOpacity={unlocked ? 0.8 : 1}
-                  >
-                    {/* Para.png her durumda arka plan olarak göster */}
-                    <Image
-                      source={require('../../assets/Para.png')}
-                      style={[
-                        styles.paraImg,
-                        !unlocked && styles.paraFaded,   // kilitli → soluk
-                        isGray && styles.paraGray,       // tamamlandı ama mükemmel değil → gri
-                      ]}
-                    />
-                    {/* Kilitli → kilit ikonu üstte */}
-                    {!unlocked && (
-                      <View style={styles.lockOverlay}>
-                        <KilitSvg width={34} height={34} />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
+                  return (
+                    <React.Fragment key={lesson.id}>
+                      <TouchableOpacity
+                        style={[styles.coin, { left, top }]}
+                        onPress={() => handleCoinPress(lesson, unlocked, tIdx, lIdx)}
+                        activeOpacity={unlocked ? 0.8 : 1}
+                      >
+                        {/* Coin */}
+                        <View style={[
+                          styles.coinWrap,
+                          !unlocked  && styles.coinFaded,
+                          isCompleted && styles.coinDone,
+                        ]}>
+                          <Image
+                            source={require('../../assets/Para.png')}
+                            style={[styles.paraImg, isCompleted && { opacity: 0.4 }]}
+                          />
+                        </View>
+
+                        {/* Kilitli → kilit ikonu */}
+                        {!unlocked && (
+                          <View style={styles.lockOverlay}>
+                            <KilitSvg width={24} height={24} />
+                          </View>
+                        )}
+
+                        {/* Tamamlandı → tik rozeti */}
+                        {isCompleted && (
+                          <View style={styles.tickBadge}>
+                            <Text style={styles.tickText}>✓</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+
+                      {/* Aşama etiketi — coin merkezinin tam altında */}
+                      <Text
+                        style={[styles.stageLabel, {
+                          left: left - (LABEL_W - COIN) / 2,
+                          top: top + COIN + 4,
+                        }]}
+                        numberOfLines={2}
+                      >
+                        {lesson.title}
+                      </Text>
+                    </React.Fragment>
+                  );
+                })}
+              </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
 
         {topicsData.length === 0 && (
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyText}>Konular yükleniyor...</Text>
+            <Text style={styles.emptyText}>İçerik yükleniyor…</Text>
           </View>
         )}
       </ScrollView>
@@ -142,50 +186,55 @@ const handleCoinPress = (lesson, unlocked) => {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+const makeStyles = (c) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
 
   topBar: {
-    backgroundColor: colors.magenta,
+    backgroundColor: c.magenta,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingTop: 12,
+    paddingBottom: 8,
     gap: 8,
+    borderBottomWidth: 4,
+    borderBottomColor: c.magentaDark,
   },
-  torchEmoji: { fontSize: 26 },
-  streakText: { fontSize: 22, fontWeight: '900', color: colors.white },
+  streakText: { fontSize: 20, fontWeight: '900', color: c.white },
 
-  scroll: { paddingBottom: 48 },
+  scroll: { paddingBottom: 60 },
+
+  unitBlock: {
+    marginBottom: 8,
+  },
 
   unitBanner: {
-    backgroundColor: colors.magenta,
+    backgroundColor: c.magenta,
     marginHorizontal: 16,
-    marginTop: 24,
-    marginBottom: 8,
-    borderRadius: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    shadowColor: colors.magentaDark,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 6,
+    marginTop: 20,
+    marginBottom: 4,
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 10,
+    borderBottomWidth: 5,
+    borderBottomColor: c.magentaDark,
   },
   unitLabel: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '700',
-    color: 'rgba(255,255,255,0.75)',
-    letterSpacing: 1,
+    color: 'rgba(255,255,255,0.70)',
+    letterSpacing: 2,
     textTransform: 'uppercase',
   },
   unitTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '900',
-    color: colors.white,
-    marginTop: 4,
+    color: c.white,
+    marginTop: 2,
   },
 
+  // ── Coin ──────────────────────────────────────────────────────────────────
   coin: {
     position: 'absolute',
     width: COIN,
@@ -193,21 +242,65 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // Para.png tam alanı doldurur — arka plan veya daire yok
-  paraImg: {
+
+  coinWrap: {
     width: COIN,
     height: COIN,
+    borderRadius: COIN / 2,
+    backgroundColor: '#D4A800',
+    elevation: 5,
+    shadowColor: '#7A5000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.45,
+    shadowRadius: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  coinFaded: { opacity: 0.45 },
+  coinDone:  { backgroundColor: '#909090' },
+
+  paraImg: {
+    width: COIN * 1.22,
+    height: COIN * 1.22,
     resizeMode: 'contain',
   },
-  paraFaded: { opacity: 0.45 },   // kilitli coinler
-  paraGray: { opacity: 0.35 },    // tamamlandı, mükemmel değil
-  // Kilit ikonu Para.png'nin üstünde ortalanmış
+
   lockOverlay: {
     position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
   },
 
+  tickBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#00CC44',
+    borderWidth: 2,
+    borderColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tickText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '900',
+    lineHeight: 13,
+  },
+
+  stageLabel: {
+    position: 'absolute',
+    width: LABEL_W,
+    fontSize: 10,
+    fontWeight: '700',
+    color: c.text,
+    textAlign: 'center',
+  },
+
   emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 80 },
-  emptyText: { fontSize: 16, color: '#9B8FA0', fontWeight: '600' },
+  emptyText: { fontSize: 15, color: '#9B8FA0', fontWeight: '600' },
 });

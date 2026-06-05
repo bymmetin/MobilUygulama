@@ -3,7 +3,13 @@ import { View, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts, Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
 import { Poppins_700Bold, Poppins_800ExtraBold } from '@expo-google-fonts/poppins';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initDB } from './src/db/database';
+import { ThemeProvider } from './src/context/ThemeContext';
+import { getCurrentUser } from './src/services/authService';
+import { resetUserDataForTest } from './src/services/contentService';
+import { scheduleDailyReminder } from './src/services/notificationService';
+import { getSettings } from './src/services/settingsService';
 import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
@@ -17,7 +23,29 @@ export default function App() {
   });
 
   useEffect(() => {
-    initDB();
+    const init = async () => {
+      await initDB();
+      // TEST MODU: Günlük claim'leri sıfırla
+      const keys = await AsyncStorage.getAllKeys();
+      const claimKeys = keys.filter(k => k.startsWith('daily_claim_'));
+      if (claimKeys.length > 0) await AsyncStorage.multiRemove(claimKeys);
+      // TEST MODU: Giriş yapmış kullanıcının XP/streak/ilerlemesini sıfırla
+      // (hesap korunur — sadece veriler sıfırlanır). Üretimde kaldırılacak.
+      try {
+        const u = await getCurrentUser();
+        if (u) await resetUserDataForTest(u.id);
+      } catch (e) {
+        console.warn('Test reset hatası:', e.message);
+      }
+      // Bildirimler açıksa günlük hatırlatmayı planla
+      try {
+        const s = await getSettings();
+        if (s.notifications) await scheduleDailyReminder();
+      } catch (e) {
+        console.warn('Bildirim planlama hatası:', e.message);
+      }
+    };
+    init();
   }, []);
 
   if (!fontsLoaded) {
@@ -29,8 +57,10 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <AppNavigator />
-    </SafeAreaProvider>
+    <ThemeProvider>
+      <SafeAreaProvider>
+        <AppNavigator />
+      </SafeAreaProvider>
+    </ThemeProvider>
   );
 }
