@@ -1,18 +1,28 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+
+// Expo Go tespiti: SDK 53 ile birlikte expo-notifications Expo Go'da çalışmıyor.
+// Development build veya üretim APK'sında sorunsuz çalışır.
+// Constants.appOwnership === 'expo' → Expo Go içinde çalışıyoruz demektir.
+const isExpoGo = Constants.appOwnership === 'expo';
 
 // Bildirim geldiğinde nasıl gösterilsin (uygulama açıkken de)
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
+// Expo Go'da bu çağrı hata/uyarı ürettiği için guard eklendi
+if (!isExpoGo) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 // Bildirim izni iste
+// Expo Go'da veya fiziksel cihaz değilse sessizce false döner
 export const requestPermission = async () => {
+  if (isExpoGo) return false;    // Expo Go → bildirim desteklenmiyor
   if (!Device.isDevice) return false; // Emülatörde çalışmaz
 
   const { status: existing } = await Notifications.getPermissionsAsync();
@@ -23,7 +33,10 @@ export const requestPermission = async () => {
 };
 
 // Günlük saat 20:00'de hatırlatma planla
+// Expo Go'da çalışmaz — sessizce çıkar, uygulama etkilenmez
 export const scheduleDailyReminder = async () => {
+  if (isExpoGo) return; // Expo Go'da desteklenmiyor
+
   const granted = await requestPermission();
   if (!granted) return;
 
@@ -46,5 +59,6 @@ export const scheduleDailyReminder = async () => {
 
 // Bildirimleri tamamen iptal et
 export const cancelReminders = async () => {
+  if (isExpoGo) return; // Expo Go'da desteklenmiyor
   await Notifications.cancelAllScheduledNotificationsAsync();
 };
